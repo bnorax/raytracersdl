@@ -1,7 +1,7 @@
-#include <iostream>
+#include "Application.h"
 
-int main()
+int main(int argc, char* argv[])
 {
-    std::cout << "Adding 2 and 9 together gives you: ";
-    return 0;
+	Application app;
+	return app.OnExecute();
 }
