@@ -33,7 +33,7 @@ bool Application::OnInitialize()
         return false;
     }
 
-    mWindow = SDL_CreateWindow("Ray Tracer", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, mWindowWidth, mWindowHeight, SDL_WINDOW_VULKAN);
+    mWindow = SDL_CreateWindow("Ray Tracer", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, mWindowWidth, mWindowHeight, 0);
     if (mWindow != NULL)
     {
         mRenderer = SDL_CreateRenderer(mWindow, -1, 0);
