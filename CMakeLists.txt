@@ -11,12 +11,12 @@ include(FetchContent)
 
 fetchcontent_declare(SDL2 URL https://github.com/libsdl-org/SDL/releases/download/release-2.26.4/SDL2-devel-2.26.4-VC.zip)
 fetchcontent_makeavailable(SDL2)
-set(SDL2_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/build/_deps/sdl2-src/include")
-set(SDL2_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/build/_deps/sdl2-src/lib/x64")
+include_directories("${CMAKE_CURRENT_LIST_DIR}/build/_deps/sdl2-src/include")
 
-include_directories(${SDL2_INCLUDE_DIRS})
+find_package(Vulkan)
 
 add_executable(RayTracer src/main.cpp)
-target_link_libraries(RayTracer ${SDL2_LIBRARIES}/SDL2.lib ${SDL2_LIBRARIES}/SDL2main.lib)
+target_link_libraries(RayTracer PRIVATE SDL2::SDL2 SDL2::SDL2main Vulkan::Vulkan)
 
-install(FILES ${SDL2_LIBRARIES}/SDL2.dll DESTINATION $<TARGET_FILE_DIR:RayTracer>)
+
+install(FILES SDL2::SDL2 DESTINATION $<TARGET_FILE_DIR:RayTracer>)
