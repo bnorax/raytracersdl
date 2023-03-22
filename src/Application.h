@@ -1,6 +1,6 @@
 #pragma once
 #include <SDL.h>
-#include <vulkan/vulkan.h>
+#include "VulkanContext.h"
 
 class Application {
 public:
@@ -16,9 +16,9 @@ public:
 	void OnInitializeVulkan();
 private:
 	bool mRunning;
-	int mWindowWidth = 1280,mWindowHeight = 720;
+	int32_t mWindowWidth = 1280,mWindowHeight = 720;
 	SDL_Window* mWindow;
 	SDL_Renderer* mRenderer;
 
-	VkInstance mVulkanInstance;
+	std::unique_ptr<VulkanContext> mVulkanContext;
 };

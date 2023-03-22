@@ -33,13 +33,15 @@ bool Application::OnInitialize()
         return false;
     }
 
-    mWindow = SDL_CreateWindow("Ray Tracer", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, mWindowWidth, mWindowHeight, 0);
+    mWindow = SDL_CreateWindow("Ray Tracer", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, mWindowWidth, mWindowHeight, SDL_WINDOW_VULKAN);
     if (mWindow != NULL)
     {
         mRenderer = SDL_CreateRenderer(mWindow, -1, 0);
     } else {
         return false;
     }
+
+    OnInitializeVulkan();
     return true;
 }
 
@@ -72,11 +74,5 @@ void Application::OnExit()
 
 void Application::OnInitializeVulkan()
 {
-    VkApplicationInfo appInfo{};
-    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    appInfo.pApplicationName = "Hello Triangle";
-    appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.pEngineName = "No Engine";
-    appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.apiVersion = VK_API_VERSION_1_0;
+    mVulkanContext = std::make_unique<VulkanContext>(mWindow);
 }
