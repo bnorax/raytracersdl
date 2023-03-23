@@ -14,9 +14,9 @@ private:
 	void CreateCommandPool();
 	void CreateCommandBuffers();
 	void CreateSwapChain();
-
+	void CreateDepthBuffer();
+	void CreateUniformBuffer();
 	bool CheckValidationLayerSupport();
-
 	SDL_Window* mWindow;
 
 	vk::raii::Context mRAIIContext;
@@ -31,5 +31,7 @@ private:
 	std::unique_ptr<vk::raii::CommandBuffers> mCommandBuffers;
 	std::unique_ptr<vk::raii::SurfaceKHR> mSurface;
 	std::unique_ptr<vk::raii::SwapchainKHR> mSwapchain;
+	std::vector<vk::raii::ImageView> mImageViews;
+	std::unique_ptr<vk::raii::Image> mDepthImage;
 	//VkDevice mVulkanDevice;
 };

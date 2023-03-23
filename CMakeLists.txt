@@ -11,16 +11,27 @@ set(CMAKE_VS_INCLUDE_INSTALL_TO_DEFAULT_BUILD 1)
 
 include(FetchContent)
 
-fetchcontent_declare(SDL2 URL https://github.com/libsdl-org/SDL/releases/download/release-2.26.4/SDL2-devel-2.26.4-VC.zip)
+fetchcontent_declare(SDL2 
+        GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+        GIT_TAG release-2.26.4
+        GIT_SHALLOW TRUE
+        GIT_PROGRESS TRUE)
 fetchcontent_makeavailable(SDL2)
 
-find_package(Vulkan)
-add_compile_definitions(VULKAN_HPP_NO_CONSTRUCTORS)
+fetchcontent_declare(glm 
+        GIT_REPOSITORY https://github.com/g-truc/glm.git
+        GIT_TAG 0.9.9.8
+        GIT_SHALLOW TRUE
+        GIT_PROGRESS TRUE)
+fetchcontent_makeavailable(glm)
 
-find_package(SDL2)
+find_package(Vulkan REQUIRED)
+
+add_compile_definitions(VULKAN_HPP_NO_CONSTRUCTORS)
+add_compile_definitions(SDL_MAIN_HANDLED)
+
 add_executable(RayTracer src/main.cpp src/main.h src/application.cpp src/application.h src/vulkancontext.cpp src/vulkancontext.h)
-target_link_libraries(RayTracer PRIVATE ${SDL2_LIBRARIES} Vulkan::Vulkan)
-target_include_directories(RayTracer PRIVATE ${SDL2_INCLUDE_DIRS})
+target_link_libraries(RayTracer PRIVATE SDL2 glm Vulkan::Vulkan)
 target_precompile_headers(RayTracer PRIVATE ${Vulkan_INCLUDE_DIRS}/vulkan/vulkan_raii.hpp)
 
 install(FILES $<TARGET_RUNTIME_DLLS:RayTracer> DESTINATION $<TARGET_FILE_DIR:RayTracer>)

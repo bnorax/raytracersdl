@@ -1,4 +1,5 @@
 #include "VulkanContext.h"
+#include  "glm/glm.hpp"
 
 VulkanContext::VulkanContext(SDL_Window* window) : mWindow(window)
 {
@@ -9,6 +10,7 @@ VulkanContext::VulkanContext(SDL_Window* window) : mWindow(window)
     CreateCommandPool();
     CreateCommandBuffers();
     CreateSwapChain();
+    CreateDepthBuffer();
 }
 
 
@@ -24,7 +26,7 @@ void VulkanContext::CreateVulkanInstance()
         .applicationVersion = VK_MAKE_API_VERSION(1, 0, 0, 0),
         .pEngineName = "Very cool engine",
         .engineVersion = VK_MAKE_API_VERSION(1, 0, 0, 0),
-        .apiVersion = VK_API_VERSION_1_0,
+        .apiVersion = VK_API_VERSION_1_3,
     };
     uint32_t extensionsCount = 0;
 
@@ -158,7 +160,7 @@ void VulkanContext::CreateSwapChain()
 
     std::vector<vk::SurfaceFormatKHR> formats = mPhysicalDevice->getSurfaceFormatsKHR(**mSurface);
     assert(!formats.empty());
-    vk::Format format = (formats[0].format == vk::Format::eUndefined) ? vk::Format::eB8G8R8A8Unorm : formats[0].format;
+    vk::Format format = (formats[0].format == vk::Format::eUndefined) ? vk::Format::eB8G8R8A8Srgb : formats[1].format;
 
     vk::SurfaceCapabilitiesKHR surfaceCapabilities = mPhysicalDevice->getSurfaceCapabilitiesKHR(**mSurface);
     vk::Extent2D               swapchainExtent = surfaceCapabilities.currentExtent;
@@ -191,13 +193,12 @@ void VulkanContext::CreateSwapChain()
         .presentMode = swapchainPresentMode,
         .clipped = true
     };
-
-    uint32_t queueFamilyIndices[2] = { graphicsQueueFamilyIndex, presentQueueFamilyIndex };
     if (graphicsQueueFamilyIndex != presentQueueFamilyIndex)
     {
         // If the graphics and present queues are from different queue families, we either have to explicitly transfer
         // ownership of images between the queues, or we have to create the swapchain with imageSharingMode as
         // VK_SHARING_MODE_CONCURRENT
+        uint32_t queueFamilyIndices[2] = { graphicsQueueFamilyIndex, presentQueueFamilyIndex };
         swapchainInfo.imageSharingMode = vk::SharingMode::eConcurrent;
         swapchainInfo.queueFamilyIndexCount = 2;
         swapchainInfo.pQueueFamilyIndices = queueFamilyIndices;
@@ -205,7 +206,91 @@ void VulkanContext::CreateSwapChain()
 
     mSwapchain = std::make_unique<vk::raii::SwapchainKHR>(*mDevice, swapchainInfo);
 
- //   std::vector<vk::Image> images = mSwapchain->getImages();
+    std::vector<vk::Image> images = mSwapchain->getImages();
+    mImageViews.reserve(images.size());
+    vk::ImageViewCreateInfo imageViewInfo{
+        .viewType = vk::ImageViewType::e2D,
+        .format = format,
+        .subresourceRange = { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 }
+    };
+    for (auto image : images)
+    {
+        imageViewInfo.image = image;
+        mImageViews.push_back(vk::raii::ImageView(*mDevice, imageViewInfo));
+    }
+}
+
+void VulkanContext::CreateDepthBuffer()
+{
+    vk::SurfaceCapabilitiesKHR surfaceCapabilities = mPhysicalDevice->getSurfaceCapabilitiesKHR(**mSurface);
+    vk::Extent2D               swapchainExtent = surfaceCapabilities.currentExtent;
+
+    const vk::Format depthFormat = vk::Format::eD16Unorm;
+    vk::FormatProperties formatProperties = mPhysicalDevice->getFormatProperties(depthFormat);
+
+    vk::ImageTiling tiling;
+    if (formatProperties.linearTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment)
+    {
+        tiling = vk::ImageTiling::eLinear;
+    }
+    else if (formatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment)
+    {
+        tiling = vk::ImageTiling::eOptimal;
+    }
+    else
+    {
+        throw std::runtime_error("DepthStencilAttachment is not supported for D16Unorm depth format.");
+    }
+    vk::ImageCreateInfo imageCreateInfo{
+
+        .imageType = vk::ImageType::e2D,
+        .format = depthFormat,
+        .extent = vk::Extent3D(swapchainExtent.width, swapchainExtent.height, 1),
+        .mipLevels = 1,
+        .arrayLayers = 1,
+        .samples = vk::SampleCountFlagBits::e1,
+        .tiling = tiling,
+        .usage = vk::ImageUsageFlagBits::eDepthStencilAttachment
+
+    };
+    mDepthImage = std::make_unique<vk::raii::Image>(*mDevice, imageCreateInfo);
+
+    vk::MemoryRequirements memoryRequirements = mDepthImage->getMemoryRequirements();
+    vk::PhysicalDeviceMemoryProperties memoryProperties = mPhysicalDevice->getMemoryProperties();
+    uint32_t typeBits = memoryRequirements.memoryTypeBits;
+    uint32_t typeIndex = 0;
+    for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++)
+    {
+        if ((typeBits & 1) &&
+            ((memoryProperties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) == vk::MemoryPropertyFlagBits::eDeviceLocal))
+        {
+            typeIndex = i;
+            break;
+        }
+        typeBits >>= 1;
+    }
+    assert(typeIndex != uint32_t(~0));
+    vk::MemoryAllocateInfo memoryAllocateInfo{
+        .allocationSize = memoryRequirements.size,
+        .memoryTypeIndex = typeIndex
+    };
+    vk::raii::DeviceMemory depthMemory(*mDevice, memoryAllocateInfo);
+    mDepthImage->bindMemory(*depthMemory, 0);
+    vk::ImageViewCreateInfo imageViewCreateInfo{
+        .image = **mDepthImage,
+        .viewType = vk::ImageViewType::e2D,
+        .format = depthFormat,
+        .subresourceRange = { vk::ImageAspectFlagBits::eDepth, 0, 1, 0, 1 }
+    };
+    vk::raii::ImageView depthView(*mDevice, imageViewCreateInfo);
+}
+
+void VulkanContext::CreateUniformBuffer()
+{
+
+    vk::BufferCreateInfo bufferCreateInfo{
+        .usage = vk::BufferUsageFlagBits::eUniformBuffer
+    };
 }
 
 bool VulkanContext::CheckValidationLayerSupport() {
