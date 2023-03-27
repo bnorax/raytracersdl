@@ -1,7 +1,7 @@
 #pragma once
 #include <vulkan/vulkan_raii.hpp>
-#include <SDL.h>
-#include <SDL_vulkan.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_vulkan.h>
 
 class VulkanContext {
 public:
@@ -16,7 +16,11 @@ private:
 	void CreateSwapChain();
 	void CreateDepthBuffer();
 	void CreateUniformBuffer();
-	bool CheckValidationLayerSupport();
+	void CreatePipelineLayout();
+	void CreateDescriptorSet();
+	void CreateRenderPass();
+
+	uint32_t findMemoryType(vk::PhysicalDeviceMemoryProperties const& memoryProperties, uint32_t typeBits, vk::MemoryPropertyFlags requirementsMask);
 	SDL_Window* mWindow;
 
 	vk::raii::Context mRAIIContext;
@@ -33,5 +37,17 @@ private:
 	std::unique_ptr<vk::raii::SwapchainKHR> mSwapchain;
 	std::vector<vk::raii::ImageView> mImageViews;
 	std::unique_ptr<vk::raii::Image> mDepthImage;
+
+	std::unique_ptr<vk::raii::DeviceMemory> uniformDataMemory;
+	std::unique_ptr<vk::raii::Buffer> mUniformBuffer;
+
+	std::unique_ptr<vk::raii::DescriptorSetLayout> mDescriptorSetLayout;
+	std::unique_ptr<vk::raii::PipelineLayout> mPipelineLayout;
+
+	std::unique_ptr<vk::raii::DescriptorPool> mDescriptorPool;
+	std::unique_ptr<vk::raii::DescriptorSet> mDescriptorSet;
+
+	std::unique_ptr<vk::raii::RenderPass> mRenderPass;
 	//VkDevice mVulkanDevice;
 };
+

@@ -1,5 +1,6 @@
 #include "VulkanContext.h"
-#include  "glm/glm.hpp"
+#include  <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 VulkanContext::VulkanContext(SDL_Window* window) : mWindow(window)
 {
@@ -11,6 +12,10 @@ VulkanContext::VulkanContext(SDL_Window* window) : mWindow(window)
     CreateCommandBuffers();
     CreateSwapChain();
     CreateDepthBuffer();
+    CreateUniformBuffer();
+    CreatePipelineLayout();
+    CreateDescriptorSet();
+    CreateRenderPass();
 }
 
 
@@ -37,13 +42,14 @@ void VulkanContext::CreateVulkanInstance()
     SDL_Vulkan_GetInstanceExtensions(mWindow, &extensionsCount, extensionNames);
 
     const std::vector<const char*> validationLayers = {
-    "VK_LAYER_KHRONOS_validation"
+    "VK_LAYER_KHRONOS_validation",
+    "VK_LAYER_LUNARG_monitor"
     };
 
 
     vk::InstanceCreateInfo instanceInfo{
         .pApplicationInfo = &applicationInfo,
-        .enabledLayerCount = 1,
+        .enabledLayerCount = static_cast<uint32_t>(validationLayers.size()),
         .ppEnabledLayerNames = validationLayers.data(),
         .enabledExtensionCount = extensionsCount,
         .ppEnabledExtensionNames = extensionNames
@@ -287,16 +293,158 @@ void VulkanContext::CreateDepthBuffer()
 
 void VulkanContext::CreateUniformBuffer()
 {
+    glm::mat4x4 model = glm::mat4x4(1.0f);
+    glm::mat4x4 view = glm::lookAt(glm::vec3(-5.0f, 3.0f, -10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+    glm::mat4x4 projection = glm::perspective(glm::radians(45.0f), 1.0f, 0.1f, 100.0f);
+    glm::mat4x4 clip = glm::mat4x4(1.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, -1.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 0.5f, 0.0f,
+        0.0f, 0.0f, 0.5f, 1.0f);  // vulkan clip space has inverted y and half z !
+    // clang-format on
+    glm::mat4x4 mvpc = clip * projection * view * model;
 
     vk::BufferCreateInfo bufferCreateInfo{
+        .size = sizeof(mvpc),
         .usage = vk::BufferUsageFlagBits::eUniformBuffer
     };
+    mUniformBuffer = std::make_unique<vk::raii::Buffer>(*mDevice, bufferCreateInfo);
+
+    vk::MemoryRequirements memoryRequirements = mUniformBuffer->getMemoryRequirements();
+
+    uint32_t typeIndex = findMemoryType(mPhysicalDevice->getMemoryProperties(),
+        memoryRequirements.memoryTypeBits,
+        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+    vk::MemoryAllocateInfo memoryAllocateInfo{
+        .allocationSize = memoryRequirements.size,
+        .memoryTypeIndex = typeIndex
+    };
+    uniformDataMemory = std::make_unique<vk::raii::DeviceMemory>(*mDevice, memoryAllocateInfo);
+    uint8_t* pData = static_cast<uint8_t*>(uniformDataMemory->mapMemory(0, memoryRequirements.size));
+    memcpy(pData, &mvpc, sizeof(mvpc));
+    uniformDataMemory->unmapMemory();
+
+    mUniformBuffer->bindMemory(**uniformDataMemory, 0);
 }
 
-bool VulkanContext::CheckValidationLayerSupport() {
-    uint32_t layerCount;
-    vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
-    std::vector<vk::LayerProperties> availableLayers(mRAIIContext.enumerateInstanceLayerProperties());
+void VulkanContext::CreatePipelineLayout()
+{
+    vk::DescriptorSetLayoutBinding    descriptorSetLayoutBinding{
+        .binding = 0,
+        .descriptorType = vk::DescriptorType::eUniformBuffer,\
+        .descriptorCount = 1,
+        .stageFlags = vk::ShaderStageFlagBits::eVertex
+    };
+    vk::DescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo{
+        .bindingCount = 1,
+        .pBindings = &descriptorSetLayoutBinding
+    };
+    mDescriptorSetLayout = std::make_unique<vk::raii::DescriptorSetLayout>(*mDevice, descriptorSetLayoutCreateInfo);
+    // create a PipelineLayout using that DescriptorSetLayout
+    vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo{
+        
+        .pSetLayouts = &**mDescriptorSetLayout,
+    };
+    mPipelineLayout = std::make_unique<vk::raii::PipelineLayout>(*mDevice, pipelineLayoutCreateInfo);
+}
 
-    return false;
+void VulkanContext::CreateDescriptorSet()
+{
+    vk::DescriptorPoolSize poolSize{
+        .type = vk::DescriptorType::eUniformBuffer,
+        .descriptorCount = 1
+    };
+
+    vk::DescriptorPoolCreateInfo descriptorPoolCreateInfo{
+        .flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
+        .maxSets = 1,
+        .pPoolSizes = &poolSize,
+    };
+    mDescriptorPool = std::make_unique<vk::raii::DescriptorPool>(*mDevice, descriptorPoolCreateInfo);
+
+    vk::DescriptorSetAllocateInfo descriptorSetAllocateInfo{
+        .descriptorPool = **mDescriptorPool,
+        .descriptorSetCount = 1,
+        .pSetLayouts = &**mDescriptorSetLayout
+    };
+    mDescriptorSet = 
+        std::make_unique<vk::raii::DescriptorSet>(std::move(vk::raii::DescriptorSets(*mDevice, descriptorSetAllocateInfo).front()));
+
+    vk::DescriptorBufferInfo descriptorBufferInfo{
+        .buffer = **mUniformBuffer,
+        .offset = 0,
+        .range = sizeof(glm::mat4x4)
+    };
+    
+    vk::WriteDescriptorSet writeDescriptorSet{
+        .dstSet = **mDescriptorSet,
+        .dstBinding = 0,
+        .dstArrayElement = 0,
+        .descriptorCount = 1,
+        .descriptorType = vk::DescriptorType::eUniformBuffer,
+        .pBufferInfo = &descriptorBufferInfo,   
+    };
+    
+    mDevice->updateDescriptorSets(writeDescriptorSet, nullptr);
+
+}
+
+void VulkanContext::CreateRenderPass()
+{
+    vk::Format colorFormat = mPhysicalDevice->getSurfaceFormatsKHR(**mSurface).front().format;
+    vk::Format depthFormat = vk::Format::eD16Unorm;
+
+    std::array<vk::AttachmentDescription, 2> attachmentDescriptions;
+    attachmentDescriptions[0] = vk::AttachmentDescription{
+        .format = colorFormat,
+        .samples = vk::SampleCountFlagBits::e1,
+        .loadOp = vk::AttachmentLoadOp::eClear,
+        .storeOp = vk::AttachmentStoreOp::eStore,
+        .stencilLoadOp = vk::AttachmentLoadOp::eDontCare,
+        .stencilStoreOp = vk::AttachmentStoreOp::eDontCare,
+        .initialLayout = vk::ImageLayout::eUndefined,
+        .finalLayout = vk::ImageLayout::ePresentSrcKHR
+    };
+    attachmentDescriptions[1] = vk::AttachmentDescription{
+         .format = depthFormat,
+         .samples = vk::SampleCountFlagBits::e1,
+         .loadOp = vk::AttachmentLoadOp::eClear,
+         .storeOp = vk::AttachmentStoreOp::eDontCare,
+         .stencilLoadOp = vk::AttachmentLoadOp::eDontCare,
+         .stencilStoreOp = vk::AttachmentStoreOp::eDontCare,
+         .initialLayout = vk::ImageLayout::eUndefined,
+         .finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal
+    };
+
+    vk::AttachmentReference colorReference(0, vk::ImageLayout::eColorAttachmentOptimal);
+    vk::AttachmentReference depthReference(1, vk::ImageLayout::eDepthStencilAttachmentOptimal);
+    vk::SubpassDescription  subpass{
+        .pipelineBindPoint = vk::PipelineBindPoint::eGraphics,
+        .pColorAttachments = &colorReference,
+        .pDepthStencilAttachment = &depthReference
+    
+    };
+    vk::RenderPassCreateInfo renderPassCreateInfo{
+        .attachmentCount = attachmentDescriptions.size(),
+        .pAttachments = attachmentDescriptions.data(),
+        .subpassCount = 1,
+        .pSubpasses = &subpass
+    };
+    
+    mRenderPass = std::make_unique<vk::raii::RenderPass>(*mDevice, renderPassCreateInfo);
+}
+
+uint32_t VulkanContext::findMemoryType(vk::PhysicalDeviceMemoryProperties const& memoryProperties, uint32_t typeBits, vk::MemoryPropertyFlags requirementsMask)
+{
+    uint32_t typeIndex = 0;
+    for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++)
+    {
+        if ((typeBits & 1) && ((memoryProperties.memoryTypes[i].propertyFlags & requirementsMask) == requirementsMask))
+        {
+            typeIndex = i;
+            break;
+        }
+        typeBits >>= 1;
+    }
+    assert(typeIndex != 0);
+    return typeIndex;
 }

@@ -1,5 +1,4 @@
 #include "Application.h"
-#include <SDL_vulkan.h>
 
 Application::Application()
 {
