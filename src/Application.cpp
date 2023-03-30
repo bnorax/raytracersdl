@@ -58,9 +58,11 @@ void Application::OnLoop()
 
 void Application::OnRender()
 {
-    SDL_SetRenderDrawColor(mRenderer, 100, 20, 30, 255);
-    SDL_RenderClear(mRenderer);
-    SDL_RenderPresent(mRenderer);
+    mVulkanContext->Draw();
+   // SDL_SetRenderDrawColor(mRenderer, 100, 20, 30, 255);
+    //SDL_RenderClear(mRenderer);
+    //SDL_RenderPresent(mRenderer);
+
 }
 
 void Application::OnExit()

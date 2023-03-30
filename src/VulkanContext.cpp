@@ -1,6 +1,8 @@
 #include "VulkanContext.h"
-#include  <glm/glm.hpp>
+#include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+
+#include <iostream>
 
 VulkanContext::VulkanContext(SDL_Window* window) : mWindow(window)
 {
@@ -16,12 +18,41 @@ VulkanContext::VulkanContext(SDL_Window* window) : mWindow(window)
     CreatePipelineLayout();
     CreateDescriptorSet();
     CreateRenderPass();
+    CreateFrameBuffer();
+    CreateSyncStructures();
 }
 
 
 bool VulkanContext::Initialize()
 {
 	return false;
+}
+
+void VulkanContext::Draw()
+{
+    mDevice->waitForFences(**mRenderFence, true, 1'000'000'000);
+    mDevice->resetFences(**mRenderFence);
+    mCommandBuffers->front().reset();
+    vk::raii::CommandBuffer* cmd = &mCommandBuffers->front();
+    vk::CommandBufferBeginInfo cmdBegin{
+        .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit
+    };
+    cmd->begin(cmdBegin);
+    std::array<vk::ClearValue, 2> clearValues{};
+    clearValues[0].color = vk::ClearColorValue{ .float32 = {{0.2f, 0.2f, 0.2f, 0.2f}}};
+    clearValues[1].depthStencil = vk::ClearDepthStencilValue{ .depth = 1.0f, .stencil = 0 };
+    vk::RenderPassBeginInfo renderPassBeginInfo{
+        .renderPass = **mRenderPass,
+        .framebuffer = *mFramebuffers.front(),
+        .renderArea = vk::Rect2D(vk::Offset2D(0, 0), swapchainExtent),
+        .clearValueCount = static_cast<uint32_t>(clearValues.size()),
+        .pClearValues = clearValues.data()
+    };
+    cmd->beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
+    cmd->bindPipeline(vk::PipelineBindPoint::eGraphics, mPipelineLayout)
+    
+    mRenderPass, framebuffers[currentBuffer.value], vk::Rect2D(vk::Offset2D(0, 0), surfaceData.extent), clearValues);
+
 }
 
 void VulkanContext::CreateVulkanInstance()
@@ -212,14 +243,14 @@ void VulkanContext::CreateSwapChain()
 
     mSwapchain = std::make_unique<vk::raii::SwapchainKHR>(*mDevice, swapchainInfo);
 
-    std::vector<vk::Image> images = mSwapchain->getImages();
-    mImageViews.reserve(images.size());
+    mImages = mSwapchain->getImages();
+    mImageViews.reserve(mImages.size());
     vk::ImageViewCreateInfo imageViewInfo{
         .viewType = vk::ImageViewType::e2D,
         .format = format,
         .subresourceRange = { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 }
     };
-    for (auto image : images)
+    for (auto image : mImages)
     {
         imageViewInfo.image = image;
         mImageViews.push_back(vk::raii::ImageView(*mDevice, imageViewInfo));
@@ -229,7 +260,7 @@ void VulkanContext::CreateSwapChain()
 void VulkanContext::CreateDepthBuffer()
 {
     vk::SurfaceCapabilitiesKHR surfaceCapabilities = mPhysicalDevice->getSurfaceCapabilitiesKHR(**mSurface);
-    vk::Extent2D               swapchainExtent = surfaceCapabilities.currentExtent;
+    swapchainExtent = surfaceCapabilities.currentExtent;
 
     const vk::Format depthFormat = vk::Format::eD16Unorm;
     vk::FormatProperties formatProperties = mPhysicalDevice->getFormatProperties(depthFormat);
@@ -280,15 +311,15 @@ void VulkanContext::CreateDepthBuffer()
         .allocationSize = memoryRequirements.size,
         .memoryTypeIndex = typeIndex
     };
-    vk::raii::DeviceMemory depthMemory(*mDevice, memoryAllocateInfo);
-    mDepthImage->bindMemory(*depthMemory, 0);
+    mDepthImageMemory = std::make_unique<vk::raii::DeviceMemory>(*mDevice, memoryAllocateInfo);
+    mDepthImage->bindMemory(**mDepthImageMemory, 0);
     vk::ImageViewCreateInfo imageViewCreateInfo{
         .image = **mDepthImage,
         .viewType = vk::ImageViewType::e2D,
         .format = depthFormat,
         .subresourceRange = { vk::ImageAspectFlagBits::eDepth, 0, 1, 0, 1 }
     };
-    vk::raii::ImageView depthView(*mDevice, imageViewCreateInfo);
+    mDepthImageView = std::make_unique<vk::raii::ImageView>(*mDevice, imageViewCreateInfo);
 }
 
 void VulkanContext::CreateUniformBuffer()
@@ -390,7 +421,8 @@ void VulkanContext::CreateDescriptorSet()
 
 void VulkanContext::CreateRenderPass()
 {
-    vk::Format colorFormat = mPhysicalDevice->getSurfaceFormatsKHR(**mSurface).front().format;
+    //vk::Format colorFormat = mPhysicalDevice->getSurfaceFormatsKHR(**mSurface).front().format;
+    vk::Format colorFormat = vk::Format::eB8G8R8A8Srgb;
     vk::Format depthFormat = vk::Format::eD16Unorm;
 
     std::array<vk::AttachmentDescription, 2> attachmentDescriptions;
@@ -429,8 +461,42 @@ void VulkanContext::CreateRenderPass()
         .subpassCount = 1,
         .pSubpasses = &subpass
     };
-    
     mRenderPass = std::make_unique<vk::raii::RenderPass>(*mDevice, renderPassCreateInfo);
+}
+
+void VulkanContext::CreateFrameBuffer(){
+    std::array<vk::ImageView, 2> attachments;
+    attachments[1] = **mDepthImageView;
+;
+    mFramebuffers.reserve(mSwapchain->getImages().size());
+
+    for (auto const& view : mImageViews)
+    {
+        attachments[0] = *view;
+        vk::FramebufferCreateInfo framebufferCreateInfo{
+            .renderPass = **mRenderPass,
+            .attachmentCount = static_cast<uint32_t>(mImageViews.size()),
+            .pAttachments = attachments.data(),
+            .width = swapchainExtent.width,
+            .height = swapchainExtent.height,
+            .layers = 1
+        };
+        mFramebuffers.push_back(vk::raii::Framebuffer(*mDevice, framebufferCreateInfo));
+    }
+}
+
+void VulkanContext::CreateSyncStructures()
+{
+    vk::FenceCreateInfo fenceCreateInfo{
+        .flags = vk::FenceCreateFlagBits::eSignaled
+    };
+    mRenderFence = std::make_unique<vk::raii::Fence>(*mDevice, fenceCreateInfo);
+
+    vk::SemaphoreCreateInfo semaphoreCreateInfo;
+
+    mRenderSemaphore = std::make_unique<vk::raii::Semaphore>(*mDevice, semaphoreCreateInfo);
+    mPresentSemaphore = std::make_unique<vk::raii::Semaphore>(*mDevice, semaphoreCreateInfo);
+
 }
 
 uint32_t VulkanContext::findMemoryType(vk::PhysicalDeviceMemoryProperties const& memoryProperties, uint32_t typeBits, vk::MemoryPropertyFlags requirementsMask)
