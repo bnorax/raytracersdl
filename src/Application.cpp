@@ -71,6 +71,7 @@ void Application::OnExit()
     SDL_DestroyWindow(mWindow);
     mWindow = NULL;
     SDL_Quit();
+    
 }
 
 void Application::OnInitializeVulkan()

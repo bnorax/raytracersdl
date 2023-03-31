@@ -22,6 +22,9 @@ private:
 	void CreateRenderPass();
 	void CreateFrameBuffer();
 	void CreateSyncStructures();
+	void CreateGraphicsPipeline();
+	void CreateShaderModules();
+	void CreateVertexBuffer();
 
 	uint32_t findMemoryType(vk::PhysicalDeviceMemoryProperties const& memoryProperties, uint32_t typeBits, vk::MemoryPropertyFlags requirementsMask);
 	SDL_Window* mWindow;
@@ -60,8 +63,15 @@ private:
 
 	std::vector<vk::raii::Framebuffer> mFramebuffers;
 
-	std::unique_ptr<vk::raii::Fence> mRenderFence;
-	std::unique_ptr<vk::raii::Semaphore> mRenderSemaphore, mPresentSemaphore;
+	std::vector<vk::raii::ShaderModule> mShaderModules;
+
+	std::unique_ptr<vk::raii::Buffer> mVertexBuffer;
+	std::unique_ptr<vk::raii::DeviceMemory> mVertexBufferMemory;
+
+	std::unique_ptr<vk::raii::Pipeline> mPipeline;
+
+	std::unique_ptr<vk::raii::Fence> mDrawFence;
+	std::unique_ptr<vk::raii::Semaphore> mRenderSemaphore, mPresentSemaphore, imageAcquiredSemaphore;
 
 	//VkDevice mVulkanDevice;
 };
