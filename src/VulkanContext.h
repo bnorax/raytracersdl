@@ -38,8 +38,6 @@ private:
 	std::unique_ptr<vk::raii::Instance> mInstance;
 	std::unique_ptr<vk::raii::PhysicalDevice> mPhysicalDevice;
 	std::unique_ptr<vk::raii::Device> mDevice;
-	std::unique_ptr<vk::raii::CommandPool> mCommandPool;
-	std::unique_ptr<vk::raii::CommandBuffers> mCommandBuffers;
 	std::unique_ptr<vk::raii::SurfaceKHR> mSurface;
 	std::unique_ptr<vk::raii::SwapchainKHR> mSwapchain;
 
@@ -70,8 +68,10 @@ private:
 
 	std::unique_ptr<vk::raii::Pipeline> mPipeline;
 
-	std::unique_ptr<vk::raii::Fence> mDrawFence;
 	std::unique_ptr<vk::raii::Semaphore> mRenderSemaphore, mPresentSemaphore, imageAcquiredSemaphore;
+	std::unique_ptr<vk::raii::Fence> mDrawFence;
+	std::unique_ptr<vk::raii::CommandPool> mCommandPool;
+	std::unique_ptr<vk::raii::CommandBuffers> mCommandBuffers;
 
 	//VkDevice mVulkanDevice;
 };

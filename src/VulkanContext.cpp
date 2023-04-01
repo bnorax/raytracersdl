@@ -4,56 +4,54 @@
 #include "ShaderUtils.h"
 #include <iostream>
 
-struct VertexPC
-{
-    float x, y, z, w;   // Position
-    float r, g, b, a;   // Color
+struct Vertex {
+    glm::vec4 pos;
+    glm::vec4 color;
 };
 
-static const VertexPC coloredCubeData[] =
-{
-    // red face
-    { -1.0f, -1.0f,  1.0f, 1.0f,    1.0f, 0.0f, 0.0f, 1.0f },
-    { -1.0f,  1.0f,  1.0f, 1.0f,    1.0f, 0.0f, 0.0f, 1.0f },
-    {  1.0f, -1.0f,  1.0f, 1.0f,    1.0f, 0.0f, 0.0f, 1.0f },
-    {  1.0f, -1.0f,  1.0f, 1.0f,    1.0f, 0.0f, 0.0f, 1.0f },
-    { -1.0f,  1.0f,  1.0f, 1.0f,    1.0f, 0.0f, 0.0f, 1.0f },
-    {  1.0f,  1.0f,  1.0f, 1.0f,    1.0f, 0.0f, 0.0f, 1.0f },
-    // green face
-    { -1.0f, -1.0f, -1.0f, 1.0f,    0.0f, 1.0f, 0.0f, 1.0f },
-    {  1.0f, -1.0f, -1.0f, 1.0f,    0.0f, 1.0f, 0.0f, 1.0f },
-    { -1.0f,  1.0f, -1.0f, 1.0f,    0.0f, 1.0f, 0.0f, 1.0f },
-    { -1.0f,  1.0f, -1.0f, 1.0f,    0.0f, 1.0f, 0.0f, 1.0f },
-    {  1.0f, -1.0f, -1.0f, 1.0f,    0.0f, 1.0f, 0.0f, 1.0f },
-    {  1.0f,  1.0f, -1.0f, 1.0f,    0.0f, 1.0f, 0.0f, 1.0f },
-    // blue face
-    { -1.0f,  1.0f,  1.0f, 1.0f,    0.0f, 0.0f, 1.0f, 1.0f },
-    { -1.0f, -1.0f,  1.0f, 1.0f,    0.0f, 0.0f, 1.0f, 1.0f },
-    { -1.0f,  1.0f, -1.0f, 1.0f,    0.0f, 0.0f, 1.0f, 1.0f },
-    { -1.0f,  1.0f, -1.0f, 1.0f,    0.0f, 0.0f, 1.0f, 1.0f },
-    { -1.0f, -1.0f,  1.0f, 1.0f,    0.0f, 0.0f, 1.0f, 1.0f },
-    { -1.0f, -1.0f, -1.0f, 1.0f,    0.0f, 0.0f, 1.0f, 1.0f },
-    // yellow face
-    {  1.0f,  1.0f,  1.0f, 1.0f,    1.0f, 1.0f, 0.0f, 1.0f },
-    {  1.0f,  1.0f, -1.0f, 1.0f,    1.0f, 1.0f, 0.0f, 1.0f },
-    {  1.0f, -1.0f,  1.0f, 1.0f,    1.0f, 1.0f, 0.0f, 1.0f },
-    {  1.0f, -1.0f,  1.0f, 1.0f,    1.0f, 1.0f, 0.0f, 1.0f },
-    {  1.0f,  1.0f, -1.0f, 1.0f,    1.0f, 1.0f, 0.0f, 1.0f },
-    {  1.0f, -1.0f, -1.0f, 1.0f,    1.0f, 1.0f, 0.0f, 1.0f },
-    // magenta face
-    {  1.0f,  1.0f,  1.0f, 1.0f,    1.0f, 0.0f, 1.0f, 1.0f },
-    { -1.0f,  1.0f,  1.0f, 1.0f,    1.0f, 0.0f, 1.0f, 1.0f },
-    {  1.0f,  1.0f, -1.0f, 1.0f,    1.0f, 0.0f, 1.0f, 1.0f },
-    {  1.0f,  1.0f, -1.0f, 1.0f,    1.0f, 0.0f, 1.0f, 1.0f },
-    { -1.0f,  1.0f,  1.0f, 1.0f,    1.0f, 0.0f, 1.0f, 1.0f },
-    { -1.0f,  1.0f, -1.0f, 1.0f,    1.0f, 0.0f, 1.0f, 1.0f },
-    // cyan face
-    {  1.0f, -1.0f,  1.0f, 1.0f,    0.0f, 1.0f, 1.0f, 1.0f },
-    {  1.0f, -1.0f, -1.0f, 1.0f,    0.0f, 1.0f, 1.0f, 1.0f },
-    { -1.0f, -1.0f,  1.0f, 1.0f,    0.0f, 1.0f, 1.0f, 1.0f },
-    { -1.0f, -1.0f,  1.0f, 1.0f,    0.0f, 1.0f, 1.0f, 1.0f },
-    {  1.0f, -1.0f, -1.0f, 1.0f,    0.0f, 1.0f, 1.0f, 1.0f },
-    { -1.0f, -1.0f, -1.0f, 1.0f,    0.0f, 1.0f, 1.0f, 1.0f },
+static const std::vector<Vertex> coloredCubeData{
+    //red face
+    {{ -1.0f, -1.0f,  1.0f, 1.0f},    {1.0f, 0.0f, 0.0f, 1.0f }},
+    {{ -1.0f,  1.0f,  1.0f, 1.0f},    {1.0f, 0.0f, 0.0f, 1.0f }},
+    {{  1.0f, -1.0f,  1.0f, 1.0f},    {1.0f, 0.0f, 0.0f, 1.0f }},
+    {{  1.0f, -1.0f,  1.0f, 1.0f},    {1.0f, 0.0f, 0.0f, 1.0f }},
+    {{ -1.0f,  1.0f,  1.0f, 1.0f},    {1.0f, 0.0f, 0.0f, 1.0f }},
+    {{  1.0f,  1.0f,  1.0f, 1.0f},    {1.0f, 0.0f, 0.0f, 1.0f }},
+    //green face                 
+    {{ -1.0f, -1.0f, -1.0f, 1.0f},    {0.0f, 1.0f, 0.0f, 1.0f }},
+    {{  1.0f, -1.0f, -1.0f, 1.0f},    {0.0f, 1.0f, 0.0f, 1.0f }},
+    {{ -1.0f,  1.0f, -1.0f, 1.0f},    {0.0f, 1.0f, 0.0f, 1.0f }},
+    {{ -1.0f,  1.0f, -1.0f, 1.0f},    {0.0f, 1.0f, 0.0f, 1.0f }},
+    {{  1.0f, -1.0f, -1.0f, 1.0f},    {0.0f, 1.0f, 0.0f, 1.0f }},
+    {{  1.0f,  1.0f, -1.0f, 1.0f},    {0.0f, 1.0f, 0.0f, 1.0f }},
+    // blue face                 
+    {{ -1.0f,  1.0f,  1.0f, 1.0f},    {0.0f, 0.0f, 1.0f, 1.0f }},
+    {{ -1.0f, -1.0f,  1.0f, 1.0f},    {0.0f, 0.0f, 1.0f, 1.0f }},
+    {{ -1.0f,  1.0f, -1.0f, 1.0f},    {0.0f, 0.0f, 1.0f, 1.0f }},
+    {{ -1.0f,  1.0f, -1.0f, 1.0f},    {0.0f, 0.0f, 1.0f, 1.0f }},
+    {{ -1.0f, -1.0f,  1.0f, 1.0f},    {0.0f, 0.0f, 1.0f, 1.0f }},
+    {{ -1.0f, -1.0f, -1.0f, 1.0f},    {0.0f, 0.0f, 1.0f, 1.0f }},
+    // yellow face               
+    {{  1.0f,  1.0f,  1.0f, 1.0f},    {1.0f, 1.0f, 0.0f, 1.0f }},
+    {{  1.0f,  1.0f, -1.0f, 1.0f},    {1.0f, 1.0f, 0.0f, 1.0f }},
+    {{  1.0f, -1.0f,  1.0f, 1.0f},    {1.0f, 1.0f, 0.0f, 1.0f }},
+    {{  1.0f, -1.0f,  1.0f, 1.0f},    {1.0f, 1.0f, 0.0f, 1.0f }},
+    {{  1.0f,  1.0f, -1.0f, 1.0f},    {1.0f, 1.0f, 0.0f, 1.0f }},
+    {{  1.0f, -1.0f, -1.0f, 1.0f},    {1.0f, 1.0f, 0.0f, 1.0f }},
+    // magenta face              
+    {{  1.0f,  1.0f,  1.0f, 1.0f},    {1.0f, 0.0f, 1.0f, 1.0f }},
+    {{ -1.0f,  1.0f,  1.0f, 1.0f},    {1.0f, 0.0f, 1.0f, 1.0f }},
+    {{  1.0f,  1.0f, -1.0f, 1.0f},    {1.0f, 0.0f, 1.0f, 1.0f }},
+    {{  1.0f,  1.0f, -1.0f, 1.0f},    {1.0f, 0.0f, 1.0f, 1.0f }},
+    {{ -1.0f,  1.0f,  1.0f, 1.0f},    {1.0f, 0.0f, 1.0f, 1.0f }},
+    {{ -1.0f,  1.0f, -1.0f, 1.0f},    {1.0f, 0.0f, 1.0f, 1.0f }},
+    // cyan face                 
+    {{  1.0f, -1.0f,  1.0f, 1.0f},    {0.0f, 1.0f, 1.0f, 1.0f }},
+    {{  1.0f, -1.0f, -1.0f, 1.0f},    {0.0f, 1.0f, 1.0f, 1.0f }},
+    {{ -1.0f, -1.0f,  1.0f, 1.0f},    {0.0f, 1.0f, 1.0f, 1.0f }},
+    {{ -1.0f, -1.0f,  1.0f, 1.0f},    {0.0f, 1.0f, 1.0f, 1.0f }},
+    {{  1.0f, -1.0f, -1.0f, 1.0f},    {0.0f, 1.0f, 1.0f, 1.0f }},
+    {{ -1.0f, -1.0f, -1.0f, 1.0f},    {0.0f, 1.0f, 1.0f, 1.0f }}
 };
 
 
@@ -101,7 +99,7 @@ void VulkanContext::Draw()
 
 
     std::array<vk::ClearValue, 2> clearValues{};
-    clearValues[0].color = vk::ClearColorValue{ .float32 = {{0.8f, 0.6f, 0.3f, 1.0f}} };
+    clearValues[0].color = vk::ClearColorValue{ .float32 = {{1.0f, 0.3f, 0.3f, 1.0f}} };
     clearValues[1].depthStencil = vk::ClearDepthStencilValue{ .depth = 1.0f, .stencil = 0 };
     cmb->begin({});
 
@@ -120,7 +118,7 @@ void VulkanContext::Draw()
     cmb->setViewport(
         0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapchainExtent.width), static_cast<float>(swapchainExtent.height), 0.0f, 1.0f));
     cmb->setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapchainExtent));
-    cmb->draw(12 * 3, 1, 0, 0);
+    cmb->draw(12*3, 1, 0, 0);
     cmb->endRenderPass();
     cmb->end();
 
@@ -155,7 +153,7 @@ void VulkanContext::Draw()
     case vk::Result::eSuboptimalKHR: std::cout << "vk::Queue::presentKHR returned vk::Result::eSuboptimalKHR !\n"; break;
     default: assert(false);  // an unexpected result is returned !
     }
-    //mDevice->waitIdle();
+    mDevice->waitIdle();
     //std::this_thread::sleep_for(std::chrono::milliseconds(100));
     //mCommandBuffers->front().reset();
 }
@@ -302,11 +300,10 @@ void VulkanContext::CreateSwapChain()
 
     std::vector<vk::SurfaceFormatKHR> formats = mPhysicalDevice->getSurfaceFormatsKHR(**mSurface);
     assert(!formats.empty());
-    vk::Format format = (formats[0].format == vk::Format::eUndefined) ? vk::Format::eB8G8R8A8Srgb : formats[1].format;
+    vk::Format format = (formats[0].format == vk::Format::eUndefined) ? vk::Format::eB8G8R8A8Srgb : formats[0].format;
 
     vk::SurfaceCapabilitiesKHR surfaceCapabilities = mPhysicalDevice->getSurfaceCapabilitiesKHR(**mSurface);
     vk::Extent2D               swapchainExtent = surfaceCapabilities.currentExtent;
-
     vk::PresentModeKHR swapchainPresentMode = vk::PresentModeKHR::eImmediate;
 
     vk::SurfaceTransformFlagBitsKHR preTransform = (surfaceCapabilities.supportedTransforms & vk::SurfaceTransformFlagBitsKHR::eIdentity)
@@ -527,8 +524,8 @@ void VulkanContext::CreateDescriptorSet()
 
 void VulkanContext::CreateRenderPass()
 {
-    //vk::Format colorFormat = mPhysicalDevice->getSurfaceFormatsKHR(**mSurface).front().format;
-    vk::Format colorFormat = vk::Format::eB8G8R8A8Srgb;
+    vk::Format colorFormat = mPhysicalDevice->getSurfaceFormatsKHR(**mSurface).front().format;
+    //vk::Format colorFormat = vk::Format::eB8G8R8A8Srgb;
     vk::Format depthFormat = vk::Format::eD16Unorm;
 
     std::array<vk::AttachmentDescription, 2> attachmentDescriptions;
@@ -737,7 +734,7 @@ void VulkanContext::CreateVertexBuffer()
 {
 
     vk::BufferCreateInfo bufferCreateInfo{
-        .size = sizeof(coloredCubeData),
+        .size = coloredCubeData.size()*sizeof(coloredCubeData[0]),
         .usage = vk::BufferUsageFlagBits::eVertexBuffer
     };
     mVertexBuffer = std::make_unique<vk::raii::Buffer>(*mDevice, bufferCreateInfo);
@@ -754,7 +751,7 @@ void VulkanContext::CreateVertexBuffer()
     mVertexBufferMemory = std::make_unique<vk::raii::DeviceMemory>(*mDevice, memoryAllocateInfo);
 
     uint8_t* pData = static_cast<uint8_t*>(mVertexBufferMemory->mapMemory(0, memoryRequirements.size));
-    memcpy(pData, coloredCubeData, sizeof(coloredCubeData));
+    memcpy(pData, coloredCubeData.data(), coloredCubeData.size() * sizeof(coloredCubeData[0]));
     mVertexBufferMemory->unmapMemory();
     mVertexBuffer->bindMemory(**mVertexBufferMemory, 0);
 
