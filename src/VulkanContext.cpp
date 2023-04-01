@@ -118,7 +118,7 @@ void VulkanContext::Draw()
     cmb->setViewport(
         0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapchainExtent.width), static_cast<float>(swapchainExtent.height), 0.0f, 1.0f));
     cmb->setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapchainExtent));
-    cmb->draw(12*3, 1, 0, 0);
+    cmb->draw(16*3, 1, 0, 0);
     cmb->endRenderPass();
     cmb->end();
 
@@ -304,7 +304,7 @@ void VulkanContext::CreateSwapChain()
 
     vk::SurfaceCapabilitiesKHR surfaceCapabilities = mPhysicalDevice->getSurfaceCapabilitiesKHR(**mSurface);
     vk::Extent2D               swapchainExtent = surfaceCapabilities.currentExtent;
-    vk::PresentModeKHR swapchainPresentMode = vk::PresentModeKHR::eImmediate;
+    vk::PresentModeKHR swapchainPresentMode = vk::PresentModeKHR::eFifo;
 
     vk::SurfaceTransformFlagBitsKHR preTransform = (surfaceCapabilities.supportedTransforms & vk::SurfaceTransformFlagBitsKHR::eIdentity)
         ? vk::SurfaceTransformFlagBitsKHR::eIdentity
@@ -611,7 +611,7 @@ void VulkanContext::CreateGraphicsPipeline()
       vk::PipelineShaderStageCreateInfo{.stage = vk::ShaderStageFlagBits::eVertex, .module = *mShaderModules[0], .pName= "main"},
       vk::PipelineShaderStageCreateInfo{.stage = vk::ShaderStageFlagBits::eFragment, .module = *mShaderModules[1], .pName = "main"}
     };
-    vk::VertexInputBindingDescription                  vertexInputBindingDescription(0, sizeof(coloredCubeData[0]));
+    vk::VertexInputBindingDescription                  vertexInputBindingDescription(0, sizeof(Vertex), vk::VertexInputRate::eVertex);
     std::array<vk::VertexInputAttributeDescription, 2> vertexInputAttributeDescriptions = {
       vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32B32A32Sfloat, 0),
       vk::VertexInputAttributeDescription(1, 0, vk::Format::eR32G32B32A32Sfloat, 16)
@@ -620,7 +620,7 @@ void VulkanContext::CreateGraphicsPipeline()
     vk::PipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo{  
         .vertexBindingDescriptionCount = 1,
         .pVertexBindingDescriptions = &vertexInputBindingDescription,    // vertexBindingDescriptions
-        .vertexAttributeDescriptionCount = 1,// flags
+        .vertexAttributeDescriptionCount = 2,// flags
         .pVertexAttributeDescriptions = vertexInputAttributeDescriptions.data()  // vertexAttributeDescriptions
     };
 
@@ -734,7 +734,7 @@ void VulkanContext::CreateVertexBuffer()
 {
 
     vk::BufferCreateInfo bufferCreateInfo{
-        .size = coloredCubeData.size()*sizeof(coloredCubeData[0]),
+        .size = coloredCubeData.size()*sizeof(Vertex),
         .usage = vk::BufferUsageFlagBits::eVertexBuffer
     };
     mVertexBuffer = std::make_unique<vk::raii::Buffer>(*mDevice, bufferCreateInfo);
@@ -751,7 +751,7 @@ void VulkanContext::CreateVertexBuffer()
     mVertexBufferMemory = std::make_unique<vk::raii::DeviceMemory>(*mDevice, memoryAllocateInfo);
 
     uint8_t* pData = static_cast<uint8_t*>(mVertexBufferMemory->mapMemory(0, memoryRequirements.size));
-    memcpy(pData, coloredCubeData.data(), coloredCubeData.size() * sizeof(coloredCubeData[0]));
+    memcpy(pData, coloredCubeData.data(), coloredCubeData.size() * sizeof(Vertex));
     mVertexBufferMemory->unmapMemory();
     mVertexBuffer->bindMemory(**mVertexBufferMemory, 0);
 
