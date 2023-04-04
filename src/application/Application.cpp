@@ -1,19 +1,22 @@
 #include "Application.h"
+#include <iostream>
 
 Application::Application()
 {
     mRunning = true;
     mWindow = nullptr;
     mRenderer = nullptr;
+    if (SDL_Init(SDL_INIT_EVERYTHING)) throw std::runtime_error(std::string("Error during SDL initializtion\n").append(SDL_GetError()));
+    mWindow = SDL_CreateWindow("Ray Tracer", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, mWindowWidth, mWindowHeight, SDL_WINDOW_VULKAN);
+    if (mWindow == NULL) throw std::runtime_error(std::string("Error during SDL window creation\n").append(SDL_GetError()));
+    mRenderer = SDL_CreateRenderer(mWindow, -1, 0);
+    if(mRenderer == NULL) throw std::runtime_error(std::string("Error during SDL renderer creation\n").append(SDL_GetError()));
+    mVulkanContext = std::make_unique<VulkanContext>(mWindow);
 }
 
 int Application::OnExecute()
 {
     SDL_Event event;
-    if (OnInitialize() == false)
-    {
-        return -1;
-    }
     while (mRunning)
     {
         while (SDL_PollEvent(&event) != 0)
@@ -23,25 +26,7 @@ int Application::OnExecute()
         OnLoop();
         OnRender();
     }
-}
-
-bool Application::OnInitialize()
-{
-    if (SDL_Init(SDL_INIT_EVERYTHING))
-    {
-        return false;
-    }
-
-    mWindow = SDL_CreateWindow("Ray Tracer", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, mWindowWidth, mWindowHeight, SDL_WINDOW_VULKAN);
-    if (mWindow != NULL)
-    {
-        mRenderer = SDL_CreateRenderer(mWindow, -1, 0);
-    } else {
-        return false;
-    }
-
-    OnInitializeVulkan();
-    return true;
+    return 0;
 }
 
 void Application::OnEvent(SDL_Event* event)
@@ -65,16 +50,10 @@ void Application::OnRender()
 
 }
 
-void Application::OnExit()
+Application::~Application()
 {
     SDL_DestroyRenderer(mRenderer);
     SDL_DestroyWindow(mWindow);
     mWindow = NULL;
     SDL_Quit();
-    
-}
-
-void Application::OnInitializeVulkan()
-{
-    mVulkanContext = std::make_unique<VulkanContext>(mWindow);
 }

@@ -49,7 +49,7 @@ std::vector<uint32_t> LoadShaderFromFile(std::string name) {
     std::filesystem::path projectPath = std::filesystem::current_path().parent_path();
     std::filesystem::path fileName(name);
 
-    std::filesystem::path absolutePath = projectPath / "src" / "shader" / fileName;
+    std::filesystem::path absolutePath = projectPath / "resources" / "shaders" / fileName;
     std::ifstream ifs(absolutePath, std::ios::binary | std::ios::ate);
     std::vector<uint32_t> shader;
     if (ifs.is_open()) {

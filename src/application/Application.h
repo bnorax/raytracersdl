@@ -1,19 +1,16 @@
 #pragma once
+#include <renderer/VulkanContext.h>
 #include <SDL2/SDL.h>
-#include "VulkanContext.h"
 
 class Application {
 public:
 	Application();
-
 	int OnExecute();
-	bool OnInitialize();
 	void OnEvent(SDL_Event* event);
 	void OnLoop();
 	void OnRender();
-	void OnExit();
-
 	void OnInitializeVulkan();
+	~Application();
 private:
 	bool mRunning;
 	int32_t mWindowWidth = 1280,mWindowHeight = 720;

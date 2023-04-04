@@ -1,13 +1,12 @@
 #include "VulkanContext.h"
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include "ShaderUtils.h"
+#include <shader/ShaderUtils.h>
+#include <graphics/Vertex.h>
+
 #include <iostream>
 
-struct Vertex {
-    glm::vec4 pos;
-    glm::vec4 color;
-};
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 
 static const std::vector<Vertex> coloredCubeData{
     //red face
@@ -304,7 +303,7 @@ void VulkanContext::CreateSwapChain()
 
     vk::SurfaceCapabilitiesKHR surfaceCapabilities = mPhysicalDevice->getSurfaceCapabilitiesKHR(**mSurface);
     vk::Extent2D               swapchainExtent = surfaceCapabilities.currentExtent;
-    vk::PresentModeKHR swapchainPresentMode = vk::PresentModeKHR::eFifo;
+    vk::PresentModeKHR swapchainPresentMode = vk::PresentModeKHR::eImmediate;
 
     vk::SurfaceTransformFlagBitsKHR preTransform = (surfaceCapabilities.supportedTransforms & vk::SurfaceTransformFlagBitsKHR::eIdentity)
         ? vk::SurfaceTransformFlagBitsKHR::eIdentity
@@ -427,8 +426,8 @@ void VulkanContext::CreateDepthBuffer()
 void VulkanContext::CreateUniformBuffer()
 {
     glm::mat4x4 model = glm::mat4x4(1.0f);
-    glm::mat4x4 view = glm::lookAt(glm::vec3(-5.0f, 3.0f, -10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
-    glm::mat4x4 projection = glm::perspective(glm::radians(45.0f), 1.0f, 0.1f, 100.0f);
+    glm::mat4x4 view = glm::lookAt(glm::vec3(-3.0f, -3.0f, -15.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+    glm::mat4x4 projection = glm::perspective(glm::radians(30.0f), 1.0f, 0.1f, 100.0f);
     glm::mat4x4 clip = glm::mat4x4(1.0f, 0.0f, 0.0f, 0.0f,
         0.0f, -1.0f, 0.0f, 0.0f,
         0.0f, 0.0f, 0.5f, 0.0f,

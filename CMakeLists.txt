@@ -7,15 +7,32 @@ project(RayTracer
 
 set(CMAKE_CXX_STANDARD 20)
 
-set(CMAKE_VS_INCLUDE_INSTALL_TO_DEFAULT_BUILD 1)
-
+include(FetchContent)
+fetchcontent_declare(EnTT
+                     GIT_REPOSITORY https://github.com/skypjack/entt.git
+                     GIT_TAG        "v3.11.1")
+fetchcontent_makeavailable(EnTT)
 find_package(Vulkan REQUIRED shaderc_combined)
 find_package(SDL2 REQUIRED)
 add_compile_definitions(VULKAN_HPP_NO_CONSTRUCTORS)
 add_compile_definitions(SDL_MAIN_HANDLED)
 
-add_executable(RayTracer src/main.cpp src/main.h src/application.cpp src/application.h src/vulkancontext.cpp src/vulkancontext.h src/shaderutils.cpp src/shaderutils.h)
-target_link_libraries(RayTracer PRIVATE SDL2::SDL2 Vulkan::Vulkan Vulkan::shaderc_combined)
+include_directories(src)
+add_executable(RayTracer
+                         src/application/main.cpp src/application/main.h 
+                         src/application/application.cpp src/application/application.h 
+                         src/application/time.cpp src/application/time.h
+                         src/renderer/vulkancontext.cpp src/renderer/vulkancontext.h
+                         src/renderer/renderer.cpp src/renderer/renderer.h
+                         src/graphics/vertex.h
+                         src/shader/shaderutils.cpp src/shader/shaderutils.h)
+
+set_target_properties(
+    RayTracer PROPERTIES
+    VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:RayTracer>")
+
+target_link_libraries(RayTracer PRIVATE Vulkan::Vulkan Vulkan::shaderc_combined SDL2::SDL2 EnTT::EnTT)
 target_precompile_headers(RayTracer PRIVATE ${Vulkan_INCLUDE_DIRS}/vulkan/vulkan_raii.hpp)
 
 install(FILES $<TARGET_RUNTIME_DLLS:RayTracer> DESTINATION $<TARGET_FILE_DIR:RayTracer>)
+install(DIRECTORY "resources" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
