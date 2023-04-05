@@ -1,5 +1,7 @@
 #pragma once
 #include <renderer/VulkanContext.h>
+#include <renderer/Renderer.h>
+
 #include <SDL2/SDL.h>
 
 class Application {
@@ -12,10 +14,10 @@ public:
 	void OnInitializeVulkan();
 	~Application();
 private:
-	bool mRunning;
-	int32_t mWindowWidth = 1280,mWindowHeight = 720;
-	SDL_Window* mWindow;
-	SDL_Renderer* mRenderer;
+	bool running;
+	int32_t windowWidth = 1280, windowHeight = 720;
+	SDL_Window* sdlWindow = nullptr;
+	SDL_Renderer* sdlRenderer = nullptr;
 
-	std::unique_ptr<VulkanContext> mVulkanContext;
+	std::unique_ptr<Renderer> renderer;
 };

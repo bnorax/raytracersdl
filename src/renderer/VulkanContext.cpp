@@ -54,7 +54,7 @@ static const std::vector<Vertex> coloredCubeData{
 };
 
 
-VulkanContext::VulkanContext(SDL_Window* window) : mWindow(window)
+VulkanContext::VulkanContext(SDL_Window* _window) : window(_window)
 {
     mVulkanAPIVersion = mRAIIContext.enumerateInstanceVersion();
     CreateVulkanInstance();
@@ -73,12 +73,6 @@ VulkanContext::VulkanContext(SDL_Window* window) : mWindow(window)
     CreateShaderModules();
     CreateVertexBuffer();
     CreateGraphicsPipeline();
-}
-
-
-bool VulkanContext::Initialize()
-{
-	return false;
 }
 
 void VulkanContext::Draw()
@@ -169,14 +163,14 @@ void VulkanContext::CreateVulkanInstance()
     uint32_t extensionsCount = 0;
 
 
-    SDL_Vulkan_GetInstanceExtensions(mWindow, &extensionsCount, nullptr);
+    SDL_Vulkan_GetInstanceExtensions(window, &extensionsCount, nullptr);
     //std::unique_ptr<const char[]> extensionNames = std::make_unique<const char[]>(extensionCount);
     const char** extensionNames = new const char*[extensionsCount];
-    SDL_Vulkan_GetInstanceExtensions(mWindow, &extensionsCount, extensionNames);
+    SDL_Vulkan_GetInstanceExtensions(window, &extensionsCount, extensionNames);
 
     const std::vector<const char*> validationLayers = {
-    "VK_LAYER_KHRONOS_validation",
-    "VK_LAYER_LUNARG_monitor"
+        "VK_LAYER_KHRONOS_validation",
+        "VK_LAYER_LUNARG_monitor"
     };
 
 
@@ -199,6 +193,8 @@ void VulkanContext::CreateVulkanPhysicalDevice()
 
 void VulkanContext::CreateDevice()
 {
+    memoryProperties = std::make_unique<vk::PhysicalDeviceMemoryProperties>(mPhysicalDevice->getMemoryProperties());
+
     queueFamilyProperties = mPhysicalDevice->getQueueFamilyProperties();
     auto propertyIterator = std::find_if(
         queueFamilyProperties.begin(),
@@ -219,17 +215,19 @@ void VulkanContext::CreateDevice()
     //vkEnumerateDeviceExtensionProperties(**mPhysicalDevice, nullptr, &extensionCount, nullptr);
     //vkEnumerateDeviceExtensionProperties(**mPhysicalDevice, nullptr, &extensionCount, &extensionProperties);
 
-
-    const char* ext("VK_KHR_swapchain");
+    std::vector<const char*> enabledExtensions = {
+        "VK_KHR_swapchain"
+    };
     vk::DeviceCreateInfo deviceInfo{
         .flags = vk::DeviceCreateFlags(),
         .queueCreateInfoCount = 1,
         .pQueueCreateInfos = &deviceQueueInfo,
-        .enabledExtensionCount = 1,
-        .ppEnabledExtensionNames = &ext
+        .enabledExtensionCount = static_cast<uint32_t>(enabledExtensions.size()),
+        .ppEnabledExtensionNames = enabledExtensions.data()
         
     };
     mDevice = std::make_unique<vk::raii::Device>(*mPhysicalDevice, deviceInfo);
+
 }
 
 void VulkanContext::CreateCommandPool()
@@ -256,7 +254,7 @@ void VulkanContext::CreateSwapChain()
 {
     {
         VkSurfaceKHR _surface;
-        SDL_Vulkan_CreateSurface(mWindow, **mInstance, &_surface);
+        SDL_Vulkan_CreateSurface(window, **mInstance, &_surface);
         mSurface = std::make_unique<vk::raii::SurfaceKHR>(*mInstance, _surface);
     }
 
@@ -394,23 +392,10 @@ void VulkanContext::CreateDepthBuffer()
     mDepthImage = std::make_unique<vk::raii::Image>(*mDevice, imageCreateInfo);
 
     vk::MemoryRequirements memoryRequirements = mDepthImage->getMemoryRequirements();
-    vk::PhysicalDeviceMemoryProperties memoryProperties = mPhysicalDevice->getMemoryProperties();
-    uint32_t typeBits = memoryRequirements.memoryTypeBits;
-    uint32_t typeIndex = 0;
-    for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++)
-    {
-        if ((typeBits & 1) &&
-            ((memoryProperties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) == vk::MemoryPropertyFlagBits::eDeviceLocal))
-        {
-            typeIndex = i;
-            break;
-        }
-        typeBits >>= 1;
-    }
-    assert(typeIndex != uint32_t(~0));
+    uint32_t memoryTypeIndex = findMemoryType(memoryRequirements, vk::MemoryPropertyFlagBits::eDeviceLocal);
     vk::MemoryAllocateInfo memoryAllocateInfo{
         .allocationSize = memoryRequirements.size,
-        .memoryTypeIndex = typeIndex
+        .memoryTypeIndex = memoryTypeIndex
     };
     mDepthImageMemory = std::make_unique<vk::raii::DeviceMemory>(*mDevice, memoryAllocateInfo);
     mDepthImage->bindMemory(**mDepthImageMemory, 0);
@@ -442,13 +427,10 @@ void VulkanContext::CreateUniformBuffer()
     mUniformBuffer = std::make_unique<vk::raii::Buffer>(*mDevice, bufferCreateInfo);
 
     vk::MemoryRequirements memoryRequirements = mUniformBuffer->getMemoryRequirements();
-
-    uint32_t typeIndex = findMemoryType(mPhysicalDevice->getMemoryProperties(),
-        memoryRequirements.memoryTypeBits,
-        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+    uint32_t memoryTypeIndex = findMemoryType(memoryRequirements, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
     vk::MemoryAllocateInfo memoryAllocateInfo{
         .allocationSize = memoryRequirements.size,
-        .memoryTypeIndex = typeIndex
+        .memoryTypeIndex = memoryTypeIndex
     };
     uniformDataMemory = std::make_unique<vk::raii::DeviceMemory>(*mDevice, memoryAllocateInfo);
     uint8_t* pData = static_cast<uint8_t*>(uniformDataMemory->mapMemory(0, memoryRequirements.size));
@@ -739,9 +721,7 @@ void VulkanContext::CreateVertexBuffer()
     mVertexBuffer = std::make_unique<vk::raii::Buffer>(*mDevice, bufferCreateInfo);
 
     vk::MemoryRequirements memoryRequirements = mVertexBuffer->getMemoryRequirements();
-    uint32_t typeIndex = findMemoryType(mPhysicalDevice->getMemoryProperties(),
-        memoryRequirements.memoryTypeBits,
-        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+    uint32_t typeIndex = findMemoryType(memoryRequirements, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
     vk::MemoryAllocateInfo memoryAllocateInfo{
         .allocationSize = memoryRequirements.size,
         .memoryTypeIndex = typeIndex
@@ -795,12 +775,13 @@ void VulkanContext::CreateVertexBuffer()
 
 }
 
-uint32_t VulkanContext::findMemoryType(vk::PhysicalDeviceMemoryProperties const& memoryProperties, uint32_t typeBits, vk::MemoryPropertyFlags requirementsMask)
+uint32_t VulkanContext::findMemoryType(vk::MemoryRequirements& memoryRequirements, vk::MemoryPropertyFlags requirementsMask)
 {
+    uint32_t typeBits = memoryRequirements.memoryTypeBits;
     uint32_t typeIndex = 0;
-    for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++)
+    for (uint32_t i = 0; i < memoryProperties->memoryTypeCount; i++)
     {
-        if ((typeBits & 1) && ((memoryProperties.memoryTypes[i].propertyFlags & requirementsMask) == requirementsMask))
+        if ((typeBits & 1) && ((memoryProperties->memoryTypes[i].propertyFlags & requirementsMask) == requirementsMask))
         {
             typeIndex = i;
             break;

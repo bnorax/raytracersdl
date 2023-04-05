@@ -5,8 +5,7 @@
 
 class VulkanContext {
 public:
-	VulkanContext(SDL_Window *window);
-	bool Initialize();
+	VulkanContext(SDL_Window*);
 	void Draw();
 private:
 	void CreateVulkanInstance();
@@ -26,13 +25,14 @@ private:
 	void CreateShaderModules();
 	void CreateVertexBuffer();
 
-	uint32_t findMemoryType(vk::PhysicalDeviceMemoryProperties const& memoryProperties, uint32_t typeBits, vk::MemoryPropertyFlags requirementsMask);
-	SDL_Window* mWindow;
+	uint32_t findMemoryType(vk::MemoryRequirements&, vk::MemoryPropertyFlags);
+	SDL_Window* window;
 
 	vk::raii::Context mRAIIContext;
 	uint32_t mVulkanAPIVersion;
 	vk::Extent2D swapchainExtent;
 
+	std::unique_ptr<vk::PhysicalDeviceMemoryProperties> memoryProperties;
 	std::vector<vk::QueueFamilyProperties> queueFamilyProperties;
 	uint32_t graphicsQueueFamilyIndex;
 	std::unique_ptr<vk::raii::Instance> mInstance;

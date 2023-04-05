@@ -3,21 +3,20 @@
 
 Application::Application()
 {
-    mRunning = true;
-    mWindow = nullptr;
-    mRenderer = nullptr;
+    running = true;
+
     if (SDL_Init(SDL_INIT_EVERYTHING)) throw std::runtime_error(std::string("Error during SDL initializtion\n").append(SDL_GetError()));
-    mWindow = SDL_CreateWindow("Ray Tracer", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, mWindowWidth, mWindowHeight, SDL_WINDOW_VULKAN);
-    if (mWindow == NULL) throw std::runtime_error(std::string("Error during SDL window creation\n").append(SDL_GetError()));
-    mRenderer = SDL_CreateRenderer(mWindow, -1, 0);
-    if(mRenderer == NULL) throw std::runtime_error(std::string("Error during SDL renderer creation\n").append(SDL_GetError()));
-    mVulkanContext = std::make_unique<VulkanContext>(mWindow);
+    sdlWindow = SDL_CreateWindow("Ray Tracer", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, windowWidth, windowHeight, SDL_WINDOW_VULKAN);
+    if (sdlWindow == NULL) throw std::runtime_error(std::string("Error during SDL window creation\n").append(SDL_GetError()));
+    sdlRenderer = SDL_CreateRenderer(sdlWindow, -1, 0);
+    if(sdlRenderer == NULL) throw std::runtime_error(std::string("Error during SDL renderer creation\n").append(SDL_GetError()));
+    renderer = std::make_unique<Renderer>(sdlWindow);
 }
 
 int Application::OnExecute()
 {
     SDL_Event event;
-    while (mRunning)
+    while (running)
     {
         while (SDL_PollEvent(&event) != 0)
         {
@@ -33,7 +32,7 @@ void Application::OnEvent(SDL_Event* event)
 {
     if (event->type == SDL_QUIT)
     {
-        mRunning = false;
+        running = false;
     }
 }
 
@@ -43,7 +42,7 @@ void Application::OnLoop()
 
 void Application::OnRender()
 {
-    mVulkanContext->Draw();
+    renderer->Draw();
    // SDL_SetRenderDrawColor(mRenderer, 100, 20, 30, 255);
     //SDL_RenderClear(mRenderer);
     //SDL_RenderPresent(mRenderer);
@@ -52,8 +51,7 @@ void Application::OnRender()
 
 Application::~Application()
 {
-    SDL_DestroyRenderer(mRenderer);
-    SDL_DestroyWindow(mWindow);
-    mWindow = NULL;
+    SDL_DestroyRenderer(sdlRenderer);
+    SDL_DestroyWindow(sdlWindow);
     SDL_Quit();
 }
