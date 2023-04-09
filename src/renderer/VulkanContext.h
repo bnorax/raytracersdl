@@ -2,11 +2,14 @@
 #include <vulkan/vulkan_raii.hpp>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <shader/Shader.h>
+#include <application/Time.h>
 
 class VulkanContext {
 public:
-	VulkanContext(SDL_Window*);
+	VulkanContext(SDL_Window*, Time&);
 	void Draw();
 private:
 	void CreateVulkanInstance();
@@ -27,7 +30,22 @@ private:
 	void CreateVertexBuffer();
 
 	uint32_t findMemoryType(vk::MemoryRequirements&, vk::MemoryPropertyFlags);
+
 	SDL_Window* window;
+	Time& time;
+
+	struct {
+	public:
+		glm::mat4x4 model = glm::mat4x4(1.0f);
+		glm::mat4x4 view = glm::lookAt(glm::vec3(-3.0f, -3.0f, -15.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+		glm::mat4x4 projection = glm::perspective(glm::radians(30.0f), 1.0f, 0.1f, 100.0f);
+		glm::mat4x4 clip = glm::mat4x4(1.0f, 0.0f, 0.0f, 0.0f,
+			0.0f, -1.0f, 0.0f, 0.0f,
+			0.0f, 0.0f, 0.5f, 0.0f,
+			0.0f, 0.0f, 0.5f, 1.0f);  // vulkan clip space has inverted y and half z !
+		// clang-format on
+		//glm::mat4x4 mvpc = clip * projection * view * model;
+	}uniformBufferObjects;
 
 	vk::raii::Context mRAIIContext;
 	uint32_t mVulkanAPIVersion;

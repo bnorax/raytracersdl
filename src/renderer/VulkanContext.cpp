@@ -54,7 +54,7 @@ static const std::vector<Vertex> coloredCubeData{
 };
 
 
-VulkanContext::VulkanContext(SDL_Window* _window) : window(_window)
+VulkanContext::VulkanContext(SDL_Window* _window, Time& _time) : window(_window), time{_time}
 {
     mVulkanAPIVersion = mRAIIContext.enumerateInstanceVersion();
     CreateVulkanInstance();
@@ -77,6 +77,7 @@ VulkanContext::VulkanContext(SDL_Window* _window) : window(_window)
 
 void VulkanContext::Draw()
 {
+    //std::cout << time.deltaTime()<<std::endl;
     while (vk::Result::eTimeout == mDevice->waitForFences({ **mDrawFence }, VK_TRUE, UINT64_MAX));
     mDevice->resetFences(**mDrawFence);
 
@@ -266,7 +267,7 @@ void VulkanContext::CreateSwapChain()
     {
         // the graphicsQueueFamilyIndex doesn't support present -> look for an other family index that supports both
         // graphics and present
-        for (uint32_t i = 0; i < queueFamilyProperties.size(); i++)
+        for (size_t i = 0; i < queueFamilyProperties.size(); i++)
         {
             if ((queueFamilyProperties[i].queueFlags & vk::QueueFlagBits::eGraphics) &&
                 mPhysicalDevice->getSurfaceSupportKHR(i, **mSurface))
@@ -301,7 +302,7 @@ void VulkanContext::CreateSwapChain()
 
     vk::SurfaceCapabilitiesKHR surfaceCapabilities = mPhysicalDevice->getSurfaceCapabilitiesKHR(**mSurface);
     vk::Extent2D               swapchainExtent = surfaceCapabilities.currentExtent;
-    vk::PresentModeKHR swapchainPresentMode = vk::PresentModeKHR::eImmediate;
+    vk::PresentModeKHR swapchainPresentMode = vk::PresentModeKHR::eFifoRelaxed;
 
     vk::SurfaceTransformFlagBitsKHR preTransform = (surfaceCapabilities.supportedTransforms & vk::SurfaceTransformFlagBitsKHR::eIdentity)
         ? vk::SurfaceTransformFlagBitsKHR::eIdentity
@@ -410,18 +411,9 @@ void VulkanContext::CreateDepthBuffer()
 
 void VulkanContext::CreateUniformBuffer()
 {
-    glm::mat4x4 model = glm::mat4x4(1.0f);
-    glm::mat4x4 view = glm::lookAt(glm::vec3(-3.0f, -3.0f, -15.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
-    glm::mat4x4 projection = glm::perspective(glm::radians(30.0f), 1.0f, 0.1f, 100.0f);
-    glm::mat4x4 clip = glm::mat4x4(1.0f, 0.0f, 0.0f, 0.0f,
-        0.0f, -1.0f, 0.0f, 0.0f,
-        0.0f, 0.0f, 0.5f, 0.0f,
-        0.0f, 0.0f, 0.5f, 1.0f);  // vulkan clip space has inverted y and half z !
-    // clang-format on
-    glm::mat4x4 mvpc = clip * projection * view * model;
-
+    //glm::mat4x4 mvpc = uniformBufferObjects.model * uniformBufferObjects.view * uniformBufferObjects.projection * uniformBufferObjects.clip;
     vk::BufferCreateInfo bufferCreateInfo{
-        .size = sizeof(mvpc),
+        .size = sizeof(uniformBufferObjects),
         .usage = vk::BufferUsageFlagBits::eUniformBuffer
     };
     mUniformBuffer = std::make_unique<vk::raii::Buffer>(*mDevice, bufferCreateInfo);
@@ -434,7 +426,7 @@ void VulkanContext::CreateUniformBuffer()
     };
     uniformDataMemory = std::make_unique<vk::raii::DeviceMemory>(*mDevice, memoryAllocateInfo);
     uint8_t* pData = static_cast<uint8_t*>(uniformDataMemory->mapMemory(0, memoryRequirements.size));
-    memcpy(pData, &mvpc, sizeof(mvpc));
+    memcpy(pData, &uniformBufferObjects, sizeof(uniformBufferObjects));
     uniformDataMemory->unmapMemory();
 
     mUniformBuffer->bindMemory(**uniformDataMemory, 0);

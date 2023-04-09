@@ -7,12 +7,16 @@ layout (location = 0) out vec4 outColor;
 
 layout (binding = 0) uniform Buffer
 {
-  mat4 mvp;
+    mat4 model;
+    mat4 view;
+    mat4 projection;
+    mat4 clip;
 } uniformBuffer;
 
 
 
 void main() {
     outColor = inColor;
-    gl_Position = uniformBuffer.mvp * pos;
+    mat4 mvp = uniformBuffer.model * uniformBuffer.view * uniformBuffer.projection * uniformBuffer.clip;
+    gl_Position = mvp * pos;
 }
