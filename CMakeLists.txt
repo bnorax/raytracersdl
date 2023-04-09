@@ -17,7 +17,7 @@ find_package(SDL2 REQUIRED)
 add_compile_definitions(VULKAN_HPP_NO_CONSTRUCTORS)
 add_compile_definitions(SDL_MAIN_HANDLED)
 
-include_directories(src)
+
 add_executable(RayTracer
                          src/application/main.cpp src/application/main.h 
                          src/application/application.cpp src/application/application.h 
@@ -25,12 +25,13 @@ add_executable(RayTracer
                          src/renderer/vulkancontext.cpp src/renderer/vulkancontext.h
                          src/renderer/renderer.cpp src/renderer/renderer.h
                          src/graphics/vertex.h
-                         src/shader/shaderutils.cpp src/shader/shaderutils.h)
+                         src/shader/shader.cpp src/shader/shader.h)
 
 set_target_properties(
     RayTracer PROPERTIES
     VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:RayTracer>")
 
+include_directories(src)
 target_link_libraries(RayTracer PRIVATE Vulkan::Vulkan Vulkan::shaderc_combined SDL2::SDL2 EnTT::EnTT)
 target_precompile_headers(RayTracer PRIVATE ${Vulkan_INCLUDE_DIRS}/vulkan/vulkan_raii.hpp)
 

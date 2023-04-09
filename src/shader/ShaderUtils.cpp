@@ -2,6 +2,7 @@
 #include <fstream>
 #include <filesystem>
 #include <sstream>
+#include <chrono>
 
 #include <shaderc/shaderc.hpp>
 
@@ -48,21 +49,21 @@ std::vector<char> CompileShaderFromFile(std::string name) {
 std::vector<uint32_t> LoadShaderFromFile(std::string name) {
     std::filesystem::path projectPath = std::filesystem::current_path().parent_path();
     std::filesystem::path fileName(name);
-
     std::filesystem::path absolutePath = projectPath / "resources" / "shaders" / fileName;
+
+    auto start = std::chrono::high_resolution_clock::now();
     std::ifstream ifs(absolutePath, std::ios::binary | std::ios::ate);
-    std::vector<uint32_t> shader;
-    if (ifs.is_open()) {
-        size_t fileSize = ifs.tellg();
-        uint32_t numberOfBytes = fileSize / 4;
-        uint32_t readByte;
-        shader.reserve(numberOfBytes);
-        ifs.seekg(0);
-        for (int i = 0; i < fileSize/4; i++) {
-            ifs.read(reinterpret_cast<char*>(&readByte), sizeof(uint32_t));
-            shader.push_back(readByte);
-        }
+    if (ifs.is_open())
+    {
+        size_t size = ifs.tellg();
+        ifs.seekg(0, std::ios::beg);
+        char* shaderCode = new char[size];
+        ifs.read(shaderCode, size);
         ifs.close();
+        uint32_t* uintArray = reinterpret_cast<uint32_t*>(shaderCode);
+        std::vector<uint32_t> shader(uintArray, uintArray + size / 4); // SizeInChars/4 = SizeInUINT32_T  
+        delete[]shaderCode;
+        return shader;
     }
-    return shader;
+    return std::vector<uint32_t>();
 }

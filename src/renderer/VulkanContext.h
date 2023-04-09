@@ -2,6 +2,7 @@
 #include <vulkan/vulkan_raii.hpp>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
+#include <shader/Shader.h>
 
 class VulkanContext {
 public:
@@ -61,7 +62,7 @@ private:
 
 	std::vector<vk::raii::Framebuffer> mFramebuffers;
 
-	std::vector<vk::raii::ShaderModule> mShaderModules;
+	std::vector<Shader> shaders;
 
 	std::unique_ptr<vk::raii::Buffer> mVertexBuffer;
 	std::unique_ptr<vk::raii::DeviceMemory> mVertexBufferMemory;

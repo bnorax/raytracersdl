@@ -589,8 +589,8 @@ void VulkanContext::CreateSyncStructures()
 void VulkanContext::CreateGraphicsPipeline()
 {
     std::array<vk::PipelineShaderStageCreateInfo, 2> pipelineShaderStageCreateInfos = {
-      vk::PipelineShaderStageCreateInfo{.stage = vk::ShaderStageFlagBits::eVertex, .module = *mShaderModules[0], .pName= "main"},
-      vk::PipelineShaderStageCreateInfo{.stage = vk::ShaderStageFlagBits::eFragment, .module = *mShaderModules[1], .pName = "main"}
+      vk::PipelineShaderStageCreateInfo{.stage = vk::ShaderStageFlagBits::eVertex, .module = shaders[0].GetShaderModule(), .pName = "main"},
+      vk::PipelineShaderStageCreateInfo{.stage = vk::ShaderStageFlagBits::eFragment, .module = shaders[1].GetShaderModule(), .pName = "main"}
     };
     vk::VertexInputBindingDescription                  vertexInputBindingDescription(0, sizeof(Vertex), vk::VertexInputRate::eVertex);
     std::array<vk::VertexInputAttributeDescription, 2> vertexInputAttributeDescriptions = {
@@ -692,23 +692,8 @@ void VulkanContext::CreateGraphicsPipeline()
 
 void VulkanContext::CreateShaderModules()
 {
-    std::vector<uint32_t> vertShader = LoadShaderFromFile("vert.spv");
-    std::vector<uint32_t> fragShader = LoadShaderFromFile("frag.spv");
-    vk::ShaderModuleCreateInfo vertexShaderModuleCreateInfo{
-        .flags = vk::ShaderModuleCreateFlags(),
-        .codeSize = static_cast<uint32_t>(vertShader.size()*4),
-        .pCode = vertShader.data()
-    };
-    vk::raii::ShaderModule vertexShaderModule(*mDevice, vertexShaderModuleCreateInfo);
-    mShaderModules.push_back(std::move(vertexShaderModule));
-
-    vk::ShaderModuleCreateInfo fragmentShaderModuleCreateInfo{
-        .flags = vk::ShaderModuleCreateFlags(),
-        .codeSize = static_cast<uint32_t>(fragShader.size()*4),
-        .pCode = fragShader.data()
-    };
-    vk::raii::ShaderModule fragmentShaderModule(*mDevice, fragmentShaderModuleCreateInfo);
-    mShaderModules.push_back(std::move(fragmentShaderModule));
+    shaders.push_back(Shader("vert.spv", *mDevice));
+    shaders.push_back(Shader("frag.spv", *mDevice));
 }
 
 void VulkanContext::CreateVertexBuffer()
