@@ -4,7 +4,7 @@
 class Time {
 public:
 	Time();
-	double deltaTime();
+	float deltaTime();
 	void StartFrame();
 	void EndFrame();
 private:

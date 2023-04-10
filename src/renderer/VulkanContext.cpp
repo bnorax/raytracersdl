@@ -6,6 +6,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
 
 
 static const std::vector<Vertex> coloredCubeData{
@@ -88,9 +89,25 @@ void VulkanContext::Draw()
     assert(imageIndex < mSwapchain->getImages().size());
 
 
-    auto cmb = &mCommandBuffers->front();
-    //cmb->reset();
-
+    auto cmb = &mCommandBuffers->front(); 
+    {
+        //cmb->reset();
+        glm::vec3 scale;
+        glm::quat rotation;
+        glm::vec3 translation;
+        glm::vec3 skew;
+        glm::vec4 perspective;
+        glm::decompose(uniformBufferObjects.model, scale, rotation, translation, skew, perspective);
+        if (scale.y > 0.9) scalingUp = false;
+        if (scale.y < 0.1) scalingUp = true;
+        if (scalingUp) uniformBufferObjects.model = glm::scale(uniformBufferObjects.model, glm::vec3(1, 1.05, 1));
+        else uniformBufferObjects.model = glm::scale(uniformBufferObjects.model, glm::vec3(1, 0.95, 1));
+        uniformBufferObjects.view = glm::rotate(uniformBufferObjects.view, glm::radians(10.0f) * time.deltaTime(), glm::vec3(0, 1, 0));
+        mvpc = uniformBufferObjects.clip * uniformBufferObjects.projection * uniformBufferObjects.view * uniformBufferObjects.model;
+        uint8_t* pData = static_cast<uint8_t*>(uniformDataMemory->mapMemory(0, sizeof(mvpc)));
+        memcpy(pData, &mvpc, sizeof(mvpc));
+        uniformDataMemory->unmapMemory();
+    }
 
     std::array<vk::ClearValue, 2> clearValues{};
     clearValues[0].color = vk::ClearColorValue{ .float32 = {{1.0f, 0.3f, 0.3f, 1.0f}} };
@@ -412,8 +429,9 @@ void VulkanContext::CreateDepthBuffer()
 void VulkanContext::CreateUniformBuffer()
 {
     //glm::mat4x4 mvpc = uniformBufferObjects.model * uniformBufferObjects.view * uniformBufferObjects.projection * uniformBufferObjects.clip;
+    mvpc = uniformBufferObjects.clip * uniformBufferObjects.projection * uniformBufferObjects.view * uniformBufferObjects.model;
     vk::BufferCreateInfo bufferCreateInfo{
-        .size = sizeof(uniformBufferObjects),
+        .size = sizeof(mvpc),
         .usage = vk::BufferUsageFlagBits::eUniformBuffer
     };
     mUniformBuffer = std::make_unique<vk::raii::Buffer>(*mDevice, bufferCreateInfo);
@@ -426,7 +444,7 @@ void VulkanContext::CreateUniformBuffer()
     };
     uniformDataMemory = std::make_unique<vk::raii::DeviceMemory>(*mDevice, memoryAllocateInfo);
     uint8_t* pData = static_cast<uint8_t*>(uniformDataMemory->mapMemory(0, memoryRequirements.size));
-    memcpy(pData, &uniformBufferObjects, sizeof(uniformBufferObjects));
+    memcpy(pData, &mvpc, sizeof(mvpc));
     uniformDataMemory->unmapMemory();
 
     mUniformBuffer->bindMemory(**uniformDataMemory, 0);
@@ -479,7 +497,7 @@ void VulkanContext::CreateDescriptorSet()
     vk::DescriptorBufferInfo descriptorBufferInfo{
         .buffer = **mUniformBuffer,
         .offset = 0,
-        .range = sizeof(glm::mat4x4)
+        .range = sizeof(mvpc)
     };
     
     vk::WriteDescriptorSet writeDescriptorSet{

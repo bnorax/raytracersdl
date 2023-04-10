@@ -44,9 +44,10 @@ private:
 			0.0f, 0.0f, 0.5f, 0.0f,
 			0.0f, 0.0f, 0.5f, 1.0f);  // vulkan clip space has inverted y and half z !
 		// clang-format on
-		//glm::mat4x4 mvpc = clip * projection * view * model;
 	}uniformBufferObjects;
 
+	glm::mat4x4 mvpc;
+	bool scalingUp;
 	vk::raii::Context mRAIIContext;
 	uint32_t mVulkanAPIVersion;
 	vk::Extent2D swapchainExtent;
