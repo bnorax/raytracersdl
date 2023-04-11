@@ -1,6 +1,5 @@
 #pragma once
-#include <renderer/VulkanContext.h>
-#include <renderer/Renderer.h>
+#include <renderer/VulkanRenderer.h>
 
 #include <SDL2/SDL.h>
 
@@ -19,5 +18,5 @@ private:
 	SDL_Window* sdlWindow = nullptr;
 	SDL_Renderer* sdlRenderer = nullptr;
 
-	std::unique_ptr<Renderer> renderer;
+	std::unique_ptr<VulkanRenderer> renderer;
 };

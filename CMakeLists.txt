@@ -22,8 +22,9 @@ add_executable(RayTracer
                          src/application/main.cpp src/application/main.h 
                          src/application/application.cpp src/application/application.h 
                          src/application/time.cpp src/application/time.h
-                         src/renderer/vulkancontext.cpp src/renderer/vulkancontext.h
                          src/renderer/renderer.cpp src/renderer/renderer.h
+                         src/renderer/vulkanrenderer.cpp src/renderer/vulkanrenderer.h
+                         src/renderer/buffer.cpp src/renderer/buffer.h
                          src/graphics/vertex.h
                          src/shader/shader.cpp src/shader/shader.h)
 

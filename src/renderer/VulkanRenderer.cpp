@@ -1,4 +1,4 @@
-#include "VulkanContext.h"
+#include "VulkanRenderer.h"
 #include <shader/ShaderUtils.h>
 #include <graphics/Vertex.h>
 
@@ -55,7 +55,7 @@ static const std::vector<Vertex> coloredCubeData{
 };
 
 
-VulkanContext::VulkanContext(SDL_Window* _window, Time& _time) : window(_window), time{_time}
+VulkanRenderer::VulkanRenderer(SDL_Window* _window) : Renderer(_window)
 {
     mVulkanAPIVersion = mRAIIContext.enumerateInstanceVersion();
     CreateVulkanInstance();
@@ -64,7 +64,7 @@ VulkanContext::VulkanContext(SDL_Window* _window, Time& _time) : window(_window)
     CreateCommandPool();
     CreateCommandBuffers();
     CreateSwapChain();
-    CreateDepthBuffer();
+    CreateDepthImage();
     CreateUniformBuffer();
     CreatePipelineLayout();
     CreateDescriptorSet();
@@ -76,7 +76,7 @@ VulkanContext::VulkanContext(SDL_Window* _window, Time& _time) : window(_window)
     CreateGraphicsPipeline();
 }
 
-void VulkanContext::Draw()
+void VulkanRenderer::Draw()
 {
     //std::cout << time.deltaTime()<<std::endl;
     while (vk::Result::eTimeout == mDevice->waitForFences({ **mDrawFence }, VK_TRUE, UINT64_MAX));
@@ -100,13 +100,13 @@ void VulkanContext::Draw()
         glm::decompose(uniformBufferObjects.model, scale, rotation, translation, skew, perspective);
         if (scale.y > 0.9) scalingUp = false;
         if (scale.y < 0.1) scalingUp = true;
-        if (scalingUp) uniformBufferObjects.model = glm::scale(uniformBufferObjects.model, glm::vec3(1, 1.05, 1));
-        else uniformBufferObjects.model = glm::scale(uniformBufferObjects.model, glm::vec3(1, 0.95, 1));
+        if (scalingUp) uniformBufferObjects.model = glm::scale(uniformBufferObjects.model, glm::vec3(1, 1+(10*time.deltaTime()), 1));
+        else uniformBufferObjects.model = glm::scale(uniformBufferObjects.model, glm::vec3(1, 1 -(10 * time.deltaTime()), 1));
         uniformBufferObjects.view = glm::rotate(uniformBufferObjects.view, glm::radians(10.0f) * time.deltaTime(), glm::vec3(0, 1, 0));
         mvpc = uniformBufferObjects.clip * uniformBufferObjects.projection * uniformBufferObjects.view * uniformBufferObjects.model;
-        uint8_t* pData = static_cast<uint8_t*>(uniformDataMemory->mapMemory(0, sizeof(mvpc)));
+        uint8_t* pData = static_cast<uint8_t*>(uniformBuffer->memory->mapMemory(0, sizeof(mvpc)));
         memcpy(pData, &mvpc, sizeof(mvpc));
-        uniformDataMemory->unmapMemory();
+        uniformBuffer->memory->unmapMemory();
     }
 
     std::array<vk::ClearValue, 2> clearValues{};
@@ -125,7 +125,7 @@ void VulkanContext::Draw()
     //cmb->clearColorImage(mImages[imageIndex], vk::ImageLayout::eGeneral, clearValues.data(), );
     cmb->bindPipeline(vk::PipelineBindPoint::eGraphics, **mPipeline);
     cmb->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, **mPipelineLayout, 0, { **mDescriptorSet }, nullptr);
-    cmb->bindVertexBuffers(0, { **mVertexBuffer }, { 0 });
+    cmb->bindVertexBuffers(0, { **vertexBuffer->buffer }, { 0 });
     cmb->setViewport(
         0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapchainExtent.width), static_cast<float>(swapchainExtent.height), 0.0f, 1.0f));
     cmb->setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapchainExtent));
@@ -169,7 +169,14 @@ void VulkanContext::Draw()
     //mCommandBuffers->front().reset();
 }
 
-void VulkanContext::CreateVulkanInstance()
+void VulkanRenderer::DrawFrame()
+{
+    time.StartFrame();
+    Draw();
+    time.EndFrame();
+}
+
+void VulkanRenderer::CreateVulkanInstance()
 {
     const vk::ApplicationInfo applicationInfo{
         .pApplicationName = "Ray Tracer SDL2 Vulkan",
@@ -202,14 +209,14 @@ void VulkanContext::CreateVulkanInstance()
     mInstance = std::make_unique<vk::raii::Instance>(mRAIIContext, instanceInfo);
 }
 
-void VulkanContext::CreateVulkanPhysicalDevice()
+void VulkanRenderer::CreateVulkanPhysicalDevice()
 {
     vk::raii::PhysicalDevices devices(*mInstance);
     mPhysicalDevice = std::make_unique<vk::raii::PhysicalDevice>(devices.front());
 
 }
 
-void VulkanContext::CreateDevice()
+void VulkanRenderer::CreateDevice()
 {
     memoryProperties = std::make_unique<vk::PhysicalDeviceMemoryProperties>(mPhysicalDevice->getMemoryProperties());
 
@@ -248,7 +255,7 @@ void VulkanContext::CreateDevice()
 
 }
 
-void VulkanContext::CreateCommandPool()
+void VulkanRenderer::CreateCommandPool()
 {
     vk::CommandPoolCreateInfo commandPoolInfo{
         .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
@@ -257,7 +264,7 @@ void VulkanContext::CreateCommandPool()
     mCommandPool = std::make_unique<vk::raii::CommandPool>(*mDevice, commandPoolInfo);
 }
 
-void VulkanContext::CreateCommandBuffers()
+void VulkanRenderer::CreateCommandBuffers()
 {
     vk::CommandBufferAllocateInfo commandBufferInfo{
         .commandPool = **mCommandPool,
@@ -268,7 +275,7 @@ void VulkanContext::CreateCommandBuffers()
     mCommandBuffers = std::make_unique<vk::raii::CommandBuffers>(*mDevice, commandBufferInfo);
 }
 
-void VulkanContext::CreateSwapChain()
+void VulkanRenderer::CreateSwapChain()
 {
     {
         VkSurfaceKHR _surface;
@@ -374,7 +381,7 @@ void VulkanContext::CreateSwapChain()
     }
 }
 
-void VulkanContext::CreateDepthBuffer()
+void VulkanRenderer::CreateDepthImage()
 {
     vk::SurfaceCapabilitiesKHR surfaceCapabilities = mPhysicalDevice->getSurfaceCapabilitiesKHR(**mSurface);
     swapchainExtent = surfaceCapabilities.currentExtent;
@@ -426,31 +433,16 @@ void VulkanContext::CreateDepthBuffer()
     mDepthImageView = std::make_unique<vk::raii::ImageView>(*mDevice, imageViewCreateInfo);
 }
 
-void VulkanContext::CreateUniformBuffer()
+void VulkanRenderer::CreateUniformBuffer()
 {
-    //glm::mat4x4 mvpc = uniformBufferObjects.model * uniformBufferObjects.view * uniformBufferObjects.projection * uniformBufferObjects.clip;
-    mvpc = uniformBufferObjects.clip * uniformBufferObjects.projection * uniformBufferObjects.view * uniformBufferObjects.model;
     vk::BufferCreateInfo bufferCreateInfo{
         .size = sizeof(mvpc),
         .usage = vk::BufferUsageFlagBits::eUniformBuffer
     };
-    mUniformBuffer = std::make_unique<vk::raii::Buffer>(*mDevice, bufferCreateInfo);
-
-    vk::MemoryRequirements memoryRequirements = mUniformBuffer->getMemoryRequirements();
-    uint32_t memoryTypeIndex = findMemoryType(memoryRequirements, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-    vk::MemoryAllocateInfo memoryAllocateInfo{
-        .allocationSize = memoryRequirements.size,
-        .memoryTypeIndex = memoryTypeIndex
-    };
-    uniformDataMemory = std::make_unique<vk::raii::DeviceMemory>(*mDevice, memoryAllocateInfo);
-    uint8_t* pData = static_cast<uint8_t*>(uniformDataMemory->mapMemory(0, memoryRequirements.size));
-    memcpy(pData, &mvpc, sizeof(mvpc));
-    uniformDataMemory->unmapMemory();
-
-    mUniformBuffer->bindMemory(**uniformDataMemory, 0);
+    uniformBuffer = std::make_unique<Buffer>(*mDevice, *memoryProperties, bufferCreateInfo, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 }
 
-void VulkanContext::CreatePipelineLayout()
+void VulkanRenderer::CreatePipelineLayout()
 {
     vk::DescriptorSetLayoutBinding    descriptorSetLayoutBinding{
         .binding = 0,
@@ -471,7 +463,7 @@ void VulkanContext::CreatePipelineLayout()
     mPipelineLayout = std::make_unique<vk::raii::PipelineLayout>(*mDevice, pipelineLayoutCreateInfo);
 }
 
-void VulkanContext::CreateDescriptorSet()
+void VulkanRenderer::CreateDescriptorSet()
 {
     vk::DescriptorPoolSize poolSize{
         .type = vk::DescriptorType::eUniformBuffer,
@@ -495,7 +487,7 @@ void VulkanContext::CreateDescriptorSet()
         std::make_unique<vk::raii::DescriptorSet>(std::move(vk::raii::DescriptorSets(*mDevice, descriptorSetAllocateInfo).front()));
 
     vk::DescriptorBufferInfo descriptorBufferInfo{
-        .buffer = **mUniformBuffer,
+        .buffer = **uniformBuffer->buffer,
         .offset = 0,
         .range = sizeof(mvpc)
     };
@@ -513,7 +505,7 @@ void VulkanContext::CreateDescriptorSet()
 
 }
 
-void VulkanContext::CreateRenderPass()
+void VulkanRenderer::CreateRenderPass()
 {
     vk::Format colorFormat = mPhysicalDevice->getSurfaceFormatsKHR(**mSurface).front().format;
     //vk::Format colorFormat = vk::Format::eB8G8R8A8Srgb;
@@ -559,7 +551,7 @@ void VulkanContext::CreateRenderPass()
     mRenderPass = std::make_unique<vk::raii::RenderPass>(*mDevice, renderPassCreateInfo);
 }
 
-void VulkanContext::CreateFrameBuffer(){
+void VulkanRenderer::CreateFrameBuffer(){
     std::array<vk::ImageView, 2> attachments;
     attachments[1] = **mDepthImageView;
 ;
@@ -581,7 +573,7 @@ void VulkanContext::CreateFrameBuffer(){
     }
 }
 
-void VulkanContext::CreateSyncStructures()
+void VulkanRenderer::CreateSyncStructures()
 {
     vk::FenceCreateInfo fenceCreateInfo{
         .flags = vk::FenceCreateFlagBits::eSignaled
@@ -596,7 +588,7 @@ void VulkanContext::CreateSyncStructures()
 
 }
 
-void VulkanContext::CreateGraphicsPipeline()
+void VulkanRenderer::CreateGraphicsPipeline()
 {
     std::array<vk::PipelineShaderStageCreateInfo, 2> pipelineShaderStageCreateInfos = {
       vk::PipelineShaderStageCreateInfo{.stage = vk::ShaderStageFlagBits::eVertex, .module = shaders[0].GetShaderModule(), .pName = "main"},
@@ -700,77 +692,25 @@ void VulkanContext::CreateGraphicsPipeline()
 
 }
 
-void VulkanContext::CreateShaderModules()
+void VulkanRenderer::CreateShaderModules()
 {
     shaders.push_back(Shader("vert.spv", *mDevice));
     shaders.push_back(Shader("frag.spv", *mDevice));
 }
 
-void VulkanContext::CreateVertexBuffer()
+void VulkanRenderer::CreateVertexBuffer()
 {
 
     vk::BufferCreateInfo bufferCreateInfo{
-        .size = coloredCubeData.size()*sizeof(Vertex),
+        .size = coloredCubeData.size() *sizeof(Vertex),
         .usage = vk::BufferUsageFlagBits::eVertexBuffer
     };
-    mVertexBuffer = std::make_unique<vk::raii::Buffer>(*mDevice, bufferCreateInfo);
-
-    vk::MemoryRequirements memoryRequirements = mVertexBuffer->getMemoryRequirements();
-    uint32_t typeIndex = findMemoryType(memoryRequirements, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-    vk::MemoryAllocateInfo memoryAllocateInfo{
-        .allocationSize = memoryRequirements.size,
-        .memoryTypeIndex = typeIndex
-    };
-    
-    mVertexBufferMemory = std::make_unique<vk::raii::DeviceMemory>(*mDevice, memoryAllocateInfo);
-
-    uint8_t* pData = static_cast<uint8_t*>(mVertexBufferMemory->mapMemory(0, memoryRequirements.size));
-    memcpy(pData, coloredCubeData.data(), coloredCubeData.size() * sizeof(Vertex));
-    mVertexBufferMemory->unmapMemory();
-    mVertexBuffer->bindMemory(**mVertexBufferMemory, 0);
-
-   // std::shared_ptr<vk::raii::Semaphore> imageAcquiredSemaphore = std::make_shared<vk::raii::Semaphore>(*mDevice, vk::SemaphoreCreateInfo());
-
-   // vk::Result result;
-   // uint32_t   imageIndex;
-   // std::tie(result, imageIndex) = mSwapchain->acquireNextImage(100'000'000, **imageAcquiredSemaphore);
-   // assert(result == vk::Result::eSuccess);
-   // assert(imageIndex < mSwapchain->getImages().size());
-
-   // std::array<vk::ClearValue, 2> clearValues{};
-   // clearValues[0].color = vk::ClearColorValue{ .float32 = {{0.2f, 0.2f, 0.2f, 0.2f}} };
-   // clearValues[1].depthStencil = vk::ClearDepthStencilValue{ .depth = 1.0f, .stencil = 0 };
-
-   // mCommandBuffers->front().begin({});
-
-   // vk::RenderPassBeginInfo renderPassBeginInfo{
-   //     .renderPass = **mRenderPass,
-   //     .framebuffer = *mFramebuffers[imageIndex],
-   //     .renderArea = vk::Rect2D(vk::Offset2D(0, 0), swapchainExtent),
-   //     .clearValueCount = static_cast<uint32_t>(clearValues.size()),
-   //     .pClearValues = clearValues.data()
-   // };
-   // 
-   // mCommandBuffers->front().beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
-
-   // mCommandBuffers->front().bindVertexBuffers(0, { **mVertexBuffer }, { 0 });
-   // mCommandBuffers->front().endRenderPass();
-   // mCommandBuffers->front().end();
-
-   // //std::shared_ptr<vk::raii::Queue> queue = std::make_shared<vk::raii::Queue>(*mDevice, graphicsQueueFamilyIndex);
-   // vk::SubmitInfo submitInfo{
-   //     .commandBufferCount = 1,
-   //     .pCommandBuffers = &*mCommandBuffers->front()
-   // };
-   // vk::Queue queue = *mDevice->getQueue(graphicsQueueFamilyIndex, 0);
-   //// mRenderFence->
-   // mDevice->resetFences(**mRenderFence);
-   // queue.submit(submitInfo, **mRenderFence);
-   // while (vk::Result::eTimeout == mDevice->waitForFences(**mRenderFence, VK_TRUE, 100'000'000)) ;
+    vertexBuffer = std::make_unique<Buffer>(*mDevice, *memoryProperties, bufferCreateInfo, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+    vertexBuffer->CopyToBuffer(coloredCubeData.data(), coloredCubeData.size() * sizeof(Vertex));
 
 }
 
-uint32_t VulkanContext::findMemoryType(vk::MemoryRequirements& memoryRequirements, vk::MemoryPropertyFlags requirementsMask)
+uint32_t VulkanRenderer::findMemoryType(vk::MemoryRequirements& memoryRequirements, vk::MemoryPropertyFlags requirementsMask)
 {
     uint32_t typeBits = memoryRequirements.memoryTypeBits;
     uint32_t typeIndex = 0;

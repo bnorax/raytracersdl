@@ -10,7 +10,7 @@ Application::Application()
     if (sdlWindow == NULL) throw std::runtime_error(std::string("Error during SDL window creation\n").append(SDL_GetError()));
     sdlRenderer = SDL_CreateRenderer(sdlWindow, -1, 0);
     if(sdlRenderer == NULL) throw std::runtime_error(std::string("Error during SDL renderer creation\n").append(SDL_GetError()));
-    renderer = std::make_unique<Renderer>(sdlWindow);
+    renderer = std::make_unique<VulkanRenderer>(sdlWindow);
 }
 
 int Application::OnExecute()
@@ -42,7 +42,7 @@ void Application::OnLoop()
 
 void Application::OnRender()
 {
-    renderer->Draw();
+    renderer->DrawFrame();
    // SDL_SetRenderDrawColor(mRenderer, 100, 20, 30, 255);
     //SDL_RenderClear(mRenderer);
     //SDL_RenderPresent(mRenderer);

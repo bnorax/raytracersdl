@@ -6,11 +6,14 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <shader/Shader.h>
 #include <application/Time.h>
+#include <renderer/Renderer.h>
+#include <renderer/Buffer.h>
 
-class VulkanContext {
+class VulkanRenderer : public Renderer{
 public:
-	VulkanContext(SDL_Window*, Time&);
+	VulkanRenderer(SDL_Window* _window);
 	void Draw();
+	void DrawFrame(); //just to make code a bit more easy to read
 private:
 	void CreateVulkanInstance();
 	void CreateVulkanPhysicalDevice();
@@ -18,7 +21,7 @@ private:
 	void CreateCommandPool();
 	void CreateCommandBuffers();
 	void CreateSwapChain();
-	void CreateDepthBuffer();
+	void CreateDepthImage();
 	void CreateUniformBuffer();
 	void CreatePipelineLayout();
 	void CreateDescriptorSet();
@@ -31,11 +34,7 @@ private:
 
 	uint32_t findMemoryType(vk::MemoryRequirements&, vk::MemoryPropertyFlags);
 
-	SDL_Window* window;
-	Time& time;
-
 	struct {
-	public:
 		glm::mat4x4 model = glm::mat4x4(1.0f);
 		glm::mat4x4 view = glm::lookAt(glm::vec3(-3.0f, -3.0f, -15.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
 		glm::mat4x4 projection = glm::perspective(glm::radians(30.0f), 1.0f, 0.1f, 100.0f);
@@ -68,8 +67,11 @@ private:
 	std::unique_ptr<vk::raii::DeviceMemory> mDepthImageMemory;
 	std::unique_ptr<vk::raii::ImageView> mDepthImageView;
 
-	std::unique_ptr<vk::raii::DeviceMemory> uniformDataMemory;
-	std::unique_ptr<vk::raii::Buffer> mUniformBuffer;
+	std::unique_ptr<Buffer> uniformBuffer;
+	std::unique_ptr<Buffer> vertexBuffer;
+
+	//std::unique_ptr<vk::raii::DeviceMemory> uniformDataMemory;
+	//std::unique_ptr<vk::raii::Buffer> mUniformBuffer;
 
 	std::unique_ptr<vk::raii::DescriptorSetLayout> mDescriptorSetLayout;
 	std::unique_ptr<vk::raii::PipelineLayout> mPipelineLayout;
@@ -83,8 +85,8 @@ private:
 
 	std::vector<Shader> shaders;
 
-	std::unique_ptr<vk::raii::Buffer> mVertexBuffer;
-	std::unique_ptr<vk::raii::DeviceMemory> mVertexBufferMemory;
+	//std::unique_ptr<vk::raii::Buffer> mVertexBuffer;
+	//std::unique_ptr<vk::raii::DeviceMemory> mVertexBufferMemory;
 
 	std::unique_ptr<vk::raii::Pipeline> mPipeline;
 
