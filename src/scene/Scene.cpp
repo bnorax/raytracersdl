@@ -6,12 +6,18 @@ using json = nlohmann::json;
 
 Scene::Scene()
 {
+    registry = std::make_unique<entt::registry>();
+}
+
+entt::registry& Scene::getRegistry()
+{
+    return *registry;
 }
 
 std::string Scene::serialize()
 {
     using namespace Components;
-    entt::basic_snapshot snapshot(registry);
+    entt::basic_snapshot snapshot(*registry);
     SceneOutput output;
     snapshot.entities(output).component<Transform, Camera>(output);
     output.close();
@@ -19,29 +25,33 @@ std::string Scene::serialize()
     return jsonOutput;
 }
 
-void Scene::deserialize()
+std::unique_ptr<entt::registry> Scene::deserialize(std::string json)
 {
     using namespace Components;
-    std::ifstream file("Check.json");
-    std::string json;
-    file >> json;
     SceneInput input(json);
-    entt::registry reg;
-    entt::basic_snapshot_loader loader(reg);
+    std::unique_ptr<entt::registry> reg = std::make_unique<entt::registry>();
+    entt::basic_snapshot_loader loader(*reg);
     loader.entities(input).component<Transform, Camera>(input);
+    return std::move(reg);
 }
 
-void Scene::saveToFile(std::string filaName)
+void Scene::saveToFile(std::string fileName)
 {
     std::string json = serialize();
-    std::ifstream file(filaName);
+    std::ofstream file(fileName);
     if(file.is_open())
-        file >> json;
+        file << json;
     file.close();
 }
 
 void Scene::loadFromFile(std::string fileName)
 {
+    std::string json;
+    std::ifstream file(fileName);
+    if (file.is_open())
+        file >> json;
+    file.close();
+    registry = deserialize(json);
 }
 
 SceneOutput::SceneOutput()

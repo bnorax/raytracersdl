@@ -59,8 +59,18 @@ static const std::vector<Vertex> coloredCubeData{
 VulkanRenderer::VulkanRenderer(SDL_Window* _window) : Renderer(_window)
 {
     Scene scene;
-    scene.serialize();
-    scene.deserialize();
+    Components::Transform t;
+    auto entity = scene.getRegistry().create();
+    scene.getRegistry().emplace<Components::Transform>(entity, t);
+
+
+    scene.saveToFile("Main Scene.json");
+    scene.loadFromFile("Main Scene.json");
+    auto view = scene.getRegistry().view<Components::Transform>();
+
+    auto transform = scene.getRegistry().get<Components::Transform>(entity);
+    //scene.serialize();
+   // scene.deserialize();
     mVulkanAPIVersion = mRAIIContext.enumerateInstanceVersion();
     CreateVulkanInstance();
     CreateVulkanPhysicalDevice();
@@ -104,8 +114,8 @@ void VulkanRenderer::Draw()
         glm::decompose(uniformBufferObjects.model, scale, rotation, translation, skew, perspective);
         if (scale.y > 0.9) scalingUp = false;
         if (scale.y < 0.1) scalingUp = true;
-        if (scalingUp) uniformBufferObjects.model = glm::scale(uniformBufferObjects.model, glm::vec3(1, 1+(10*time.deltaTime()), 1));
-        else uniformBufferObjects.model = glm::scale(uniformBufferObjects.model, glm::vec3(1, 1 -(10 * time.deltaTime()), 1));
+        if (scalingUp) uniformBufferObjects.model = glm::scale(uniformBufferObjects.model, glm::vec3(1, 1+(time.deltaTime()), 1));
+        else uniformBufferObjects.model = glm::scale(uniformBufferObjects.model, glm::vec3(1, 1 -(time.deltaTime()), 1));
         uniformBufferObjects.view = glm::rotate(uniformBufferObjects.view, glm::radians(10.0f) * time.deltaTime(), glm::vec3(0, 1, 0));
         mvpc = uniformBufferObjects.clip * uniformBufferObjects.projection * uniformBufferObjects.view * uniformBufferObjects.model;
         uniformBuffer->copyToBuffer(&mvpc, sizeof(glm::mat4x4));

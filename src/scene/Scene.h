@@ -6,11 +6,12 @@ public:
 	Scene();
 	entt::registry& getRegistry();
 	std::string serialize();
-	void deserialize();
+	std::unique_ptr<entt::registry> deserialize(std::string);
 	void saveToFile(std::string filaName);
 	void loadFromFile(std::string fileName);
 private:
-	entt::registry registry;
+	std::unique_ptr<entt::registry> registry;
+    std::string fileName = "Default Scene.json";
 };
 
 class SceneInput {
@@ -47,9 +48,9 @@ private:
 
 namespace Components {
     struct Transform {
-        std::array<float, 3> position;
-        std::array<float, 3> rotation;
-        std::array<float, 3> scale;
+        std::array<float, 3> position = {0, 0, 0};
+        std::array<float, 3> rotation = { 0, 0, 0 };
+        std::array<float, 3> scale = { 0, 0, 0 };
     };
     struct Camera {
         Transform transform;
