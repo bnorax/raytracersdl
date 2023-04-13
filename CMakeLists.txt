@@ -12,6 +12,11 @@ fetchcontent_declare(EnTT
                      GIT_REPOSITORY https://github.com/skypjack/entt.git
                      GIT_TAG        "v3.11.1")
 fetchcontent_makeavailable(EnTT)
+
+FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz)
+FetchContent_MakeAvailable(json)
+
+
 find_package(Vulkan REQUIRED shaderc_combined)
 find_package(SDL2 REQUIRED)
 add_compile_definitions(VULKAN_HPP_NO_CONSTRUCTORS)
@@ -26,6 +31,7 @@ add_executable(RayTracer
                          src/renderer/vulkanrenderer.cpp src/renderer/vulkanrenderer.h
                          src/renderer/buffer.cpp src/renderer/buffer.h
                          src/graphics/vertex.h
+                         src/scene/scene.cpp src/scene/scene.h
                          src/shader/shader.cpp src/shader/shader.h)
 
 set_target_properties(
@@ -33,7 +39,7 @@ set_target_properties(
     VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:RayTracer>")
 
 include_directories(src)
-target_link_libraries(RayTracer PRIVATE Vulkan::Vulkan Vulkan::shaderc_combined SDL2::SDL2 EnTT::EnTT)
+target_link_libraries(RayTracer PRIVATE Vulkan::Vulkan Vulkan::shaderc_combined SDL2::SDL2 EnTT::EnTT nlohmann_json::nlohmann_json)
 target_precompile_headers(RayTracer PRIVATE ${Vulkan_INCLUDE_DIRS}/vulkan/vulkan_raii.hpp)
 
 install(FILES $<TARGET_RUNTIME_DLLS:RayTracer> DESTINATION $<TARGET_FILE_DIR:RayTracer>)

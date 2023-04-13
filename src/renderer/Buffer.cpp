@@ -4,7 +4,7 @@ Buffer::Buffer(vk::raii::Device& device, vk::PhysicalDeviceMemoryProperties& mem
 {
     buffer = std::make_unique<vk::raii::Buffer>(device, bufferCreateInfo);
     memoryRequirements = buffer->getMemoryRequirements();
-    uint32_t memoryTypeIndex = FindMemoryType(memoryProperties, memoryRequirements, memoryFlags);
+    uint32_t memoryTypeIndex = findMemoryType(memoryProperties, memoryRequirements, memoryFlags);
     vk::MemoryAllocateInfo memoryAllocateInfo{
         .allocationSize = memoryRequirements.size,
         .memoryTypeIndex = memoryTypeIndex
@@ -15,25 +15,25 @@ Buffer::Buffer(vk::raii::Device& device, vk::PhysicalDeviceMemoryProperties& mem
     buffer->bindMemory(**memory, 0);
 }
 
-uint8_t* Buffer::Map()
+uint8_t* Buffer::map()
 {
     uint8_t* pData = static_cast<uint8_t*>(memory->mapMemory(0, memoryRequirements.size));
     return pData;
 }
 
-void Buffer::Unmap()
+void Buffer::unmap()
 {
     memory->unmapMemory();
 }
 
-void Buffer::CopyToBuffer(const void* data, size_t size)
+void Buffer::copyToBuffer(const void* data, size_t size)
 {
-    uint8_t* mappedMemory = Map();
+    uint8_t* mappedMemory = map();
     memcpy(mappedMemory, data, size);
-    Unmap();
+    unmap();
 }
 
-uint32_t Buffer::FindMemoryType(vk::PhysicalDeviceMemoryProperties& memoryProperties, vk::MemoryRequirements& memoryRequirements, vk::MemoryPropertyFlags requirementsMask)
+uint32_t Buffer::findMemoryType(vk::PhysicalDeviceMemoryProperties& memoryProperties, vk::MemoryRequirements& memoryRequirements, vk::MemoryPropertyFlags requirementsMask)
 {
     uint32_t typeBits = memoryRequirements.memoryTypeBits;
     uint32_t typeIndex = 0;

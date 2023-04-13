@@ -1,6 +1,7 @@
 #include "VulkanRenderer.h"
 #include <shader/ShaderUtils.h>
 #include <graphics/Vertex.h>
+#include <scene/Scene.h>
 
 #include <iostream>
 
@@ -57,6 +58,9 @@ static const std::vector<Vertex> coloredCubeData{
 
 VulkanRenderer::VulkanRenderer(SDL_Window* _window) : Renderer(_window)
 {
+    Scene scene;
+    scene.serialize();
+    scene.deserialize();
     mVulkanAPIVersion = mRAIIContext.enumerateInstanceVersion();
     CreateVulkanInstance();
     CreateVulkanPhysicalDevice();
@@ -104,9 +108,7 @@ void VulkanRenderer::Draw()
         else uniformBufferObjects.model = glm::scale(uniformBufferObjects.model, glm::vec3(1, 1 -(10 * time.deltaTime()), 1));
         uniformBufferObjects.view = glm::rotate(uniformBufferObjects.view, glm::radians(10.0f) * time.deltaTime(), glm::vec3(0, 1, 0));
         mvpc = uniformBufferObjects.clip * uniformBufferObjects.projection * uniformBufferObjects.view * uniformBufferObjects.model;
-        uint8_t* pData = static_cast<uint8_t*>(uniformBuffer->memory->mapMemory(0, sizeof(mvpc)));
-        memcpy(pData, &mvpc, sizeof(mvpc));
-        uniformBuffer->memory->unmapMemory();
+        uniformBuffer->copyToBuffer(&mvpc, sizeof(glm::mat4x4));
     }
 
     std::array<vk::ClearValue, 2> clearValues{};
@@ -591,8 +593,8 @@ void VulkanRenderer::CreateSyncStructures()
 void VulkanRenderer::CreateGraphicsPipeline()
 {
     std::array<vk::PipelineShaderStageCreateInfo, 2> pipelineShaderStageCreateInfos = {
-      vk::PipelineShaderStageCreateInfo{.stage = vk::ShaderStageFlagBits::eVertex, .module = shaders[0].GetShaderModule(), .pName = "main"},
-      vk::PipelineShaderStageCreateInfo{.stage = vk::ShaderStageFlagBits::eFragment, .module = shaders[1].GetShaderModule(), .pName = "main"}
+      vk::PipelineShaderStageCreateInfo{.stage = vk::ShaderStageFlagBits::eVertex, .module = shaders[0].getShaderModule(), .pName = "main"},
+      vk::PipelineShaderStageCreateInfo{.stage = vk::ShaderStageFlagBits::eFragment, .module = shaders[1].getShaderModule(), .pName = "main"}
     };
     vk::VertexInputBindingDescription                  vertexInputBindingDescription(0, sizeof(Vertex), vk::VertexInputRate::eVertex);
     std::array<vk::VertexInputAttributeDescription, 2> vertexInputAttributeDescriptions = {
@@ -706,7 +708,7 @@ void VulkanRenderer::CreateVertexBuffer()
         .usage = vk::BufferUsageFlagBits::eVertexBuffer
     };
     vertexBuffer = std::make_unique<Buffer>(*mDevice, *memoryProperties, bufferCreateInfo, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-    vertexBuffer->CopyToBuffer(coloredCubeData.data(), coloredCubeData.size() * sizeof(Vertex));
+    vertexBuffer->copyToBuffer(coloredCubeData.data(), coloredCubeData.size() * sizeof(Vertex));
 
 }
 

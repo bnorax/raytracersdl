@@ -7,13 +7,13 @@
 
 Shader::Shader(std::string shaderName, vk::raii::Device& deviceArg) : name{shaderName}, device{deviceArg}
 {
-    LoadShaderFromFile();
+    loadShaderFromFile();
 }
-vk::ShaderModule Shader::GetShaderModule()
+vk::ShaderModule Shader::getShaderModule()
 {
     return **vkModule;
 }
-void Shader::LoadShaderFromFile() {
+void Shader::loadShaderFromFile() {
     std::filesystem::path projectPath = std::filesystem::current_path().parent_path();
     std::filesystem::path absolutePath = projectPath / "resources" / "shaders" / name;
 
