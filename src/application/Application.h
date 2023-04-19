@@ -1,8 +1,6 @@
 #pragma once
 #include <renderer/VulkanRenderer.h>
 
-#include <SDL2/SDL.h>
-
 class Application {
 public:
 	Application();

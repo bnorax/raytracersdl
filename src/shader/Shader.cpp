@@ -1,10 +1,5 @@
 #include "Shader.h"
 
-#include <fstream>
-#include <filesystem>
-#include <chrono>
-#include <vulkan/vulkan_raii.hpp>
-
 Shader::Shader(std::string shaderName, vk::raii::Device& deviceArg) : name{shaderName}, device{deviceArg}
 {
     loadShaderFromFile();

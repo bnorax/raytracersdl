@@ -1,5 +1,5 @@
 #pragma once
-#include <vulkan/vulkan_raii.hpp>
+
 class Shader {
 public:
 	Shader(std::string shaderName, vk::raii::Device& device);

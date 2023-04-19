@@ -1,19 +1,18 @@
 #pragma once
-#include <vulkan/vulkan_raii.hpp>
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_vulkan.h>
-#include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+
 #include <shader/Shader.h>
 #include <application/Time.h>
 #include <renderer/Renderer.h>
 #include <renderer/Buffer.h>
+#include <scene/Scene.h>
 
 class VulkanRenderer : public Renderer{
 public:
 	VulkanRenderer(SDL_Window* _window);
 	void Draw();
-	void DrawFrame(); //just to make code a bit more easy to read
+	void DrawFrame();
+	void Start();
 private:
 	void CreateVulkanInstance();
 	void CreateVulkanPhysicalDevice();
@@ -34,6 +33,8 @@ private:
 
 	uint32_t findMemoryType(vk::MemoryRequirements&, vk::MemoryPropertyFlags);
 
+	std::unique_ptr<Scene> activeScene;
+
 	struct {
 		glm::mat4x4 model = glm::mat4x4(1.0f);
 		glm::mat4x4 view = glm::lookAt(glm::vec3(-3.0f, -3.0f, -15.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
@@ -43,7 +44,7 @@ private:
 			0.0f, 0.0f, 0.5f, 0.0f,
 			0.0f, 0.0f, 0.5f, 1.0f);  // vulkan clip space has inverted y and half z !
 		// clang-format on
-	}uniformBufferObjects;
+	}ubo;
 
 	glm::mat4x4 mvpc;
 	bool scalingUp;
@@ -70,9 +71,6 @@ private:
 	std::unique_ptr<Buffer> uniformBuffer;
 	std::unique_ptr<Buffer> vertexBuffer;
 
-	//std::unique_ptr<vk::raii::DeviceMemory> uniformDataMemory;
-	//std::unique_ptr<vk::raii::Buffer> mUniformBuffer;
-
 	std::unique_ptr<vk::raii::DescriptorSetLayout> mDescriptorSetLayout;
 	std::unique_ptr<vk::raii::PipelineLayout> mPipelineLayout;
 
@@ -84,9 +82,6 @@ private:
 	std::vector<vk::raii::Framebuffer> mFramebuffers;
 
 	std::vector<Shader> shaders;
-
-	//std::unique_ptr<vk::raii::Buffer> mVertexBuffer;
-	//std::unique_ptr<vk::raii::DeviceMemory> mVertexBufferMemory;
 
 	std::unique_ptr<vk::raii::Pipeline> mPipeline;
 
