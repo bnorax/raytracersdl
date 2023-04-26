@@ -76,6 +76,8 @@ VulkanRenderer::VulkanRenderer(SDL_Window* _window) : Renderer(_window)
     CreateShaderModules();
     CreateVertexBuffer();
     CreateGraphicsPipeline();
+
+    Start();
 }
 
 void VulkanRenderer::Draw()
@@ -179,10 +181,7 @@ void VulkanRenderer::DrawFrame()
 void VulkanRenderer::Start()
 {
     activeScene = std::make_unique<Scene>();
-    entt::registry& reg = activeScene->getRegistry();
-    auto camera = reg.create();
-    reg.emplace<Components::Camera>(camera);
-    reg.emplace<Components::Transform>(camera);
+    activeScene->Start();
 }
 
 void VulkanRenderer::CreateVulkanInstance()

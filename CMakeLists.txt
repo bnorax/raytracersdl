@@ -25,18 +25,19 @@ add_compile_definitions(SDL_MAIN_HANDLED)
 
 add_executable(RayTracer
                          src/application/main.cpp src/application/main.h 
-                         src/application/application.cpp src/application/application.h 
+                         src/application/application.cpp src/application/application.h
                          src/application/time.cpp src/application/time.h
                          src/renderer/renderer.cpp src/renderer/renderer.h
                          src/renderer/vulkanrenderer.cpp src/renderer/vulkanrenderer.h
                          src/renderer/buffer.cpp src/renderer/buffer.h
                          src/graphics/vertex.h
-                         src/scene/JsonSerialization.cpp src/scene/JsonSerialization.h
                          src/scene/scene.cpp src/scene/scene.h
+                         src/scene/gameobject.cpp src/scene/gameobject.h
                          src/scene/components/components.h
-                         src/shader/shader.cpp src/shader/shader.h
+                         src/scene/JsonSerialization.cpp src/scene/JsonSerialization.h
                          src/scene/systems/systems.cpp  src/scene/systems/systems.h
-                         src/scene/systems/camerasystem.h
+                         src/scene/systems/camerasystem.cpp src/scene/systems/camerasystem.h
+                         src/shader/shader.cpp src/shader/shader.h
                         
 )
 
@@ -46,7 +47,8 @@ set_target_properties(
 
 include_directories(src)
 target_link_libraries(RayTracer PRIVATE Vulkan::Vulkan Vulkan::shaderc_combined SDL2::SDL2 EnTT::EnTT nlohmann_json::nlohmann_json)
-target_precompile_headers(RayTracer PRIVATE ${Vulkan_INCLUDE_DIRS}/vulkan/vulkan_raii.hpp <vector> <string> <entt/entt.hpp> <glm/glm.hpp> <iostream> <SDL2/SDL.h> <SDL2/SDL_vulkan.h> <iostream> <fstream> <nlohmann/json.hpp> <chrono> <filesystem>)
+target_precompile_headers(RayTracer PRIVATE  <vector> <string> <glm/glm.hpp> <iostream> <fstream> <chrono> <filesystem>
+                                             ${Vulkan_INCLUDE_DIRS}/vulkan/vulkan_raii.hpp <SDL2/SDL.h> <SDL2/SDL_vulkan.h> <nlohmann/json.hpp> <entt/entt.hpp>)
 
 install(FILES $<TARGET_RUNTIME_DLLS:RayTracer> DESTINATION $<TARGET_FILE_DIR:RayTracer>)
 install(DIRECTORY "resources" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})

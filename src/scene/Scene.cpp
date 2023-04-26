@@ -54,3 +54,40 @@ void Scene::loadFromFile(std::string fileName)
     file.close();
     registry = deserialize(json);
 }
+
+GameObject& Scene::createGameObject()
+{
+    using namespace Components;
+    auto entity = registry->create();
+    registry->emplace<Transform>(entity);
+    return objects.emplace_back(entity);
+}
+
+void Scene::deleteGameObject(GameObject& object)
+{
+    using namespace Components;
+    registry->destroy(object.GetEntityID());
+    size_t index = std::distance(&objects[0], &object);
+    objects.erase(objects.begin() + index);
+}
+
+void Scene::Start()
+{
+    using namespace Components;
+    GameObject& go = createGameObject();
+
+    Camera& comp = addComponent<Camera>(go);
+
+    comp.angle = 29;
+
+    //activeScene->updateComponent<Camera>(go, comp);
+
+    auto camera2 = getComponent<Camera>(go);
+
+    deleteGameObject(go);
+}
+
+void Scene::Update()
+{
+
+}
