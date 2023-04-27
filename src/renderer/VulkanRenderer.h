@@ -6,6 +6,7 @@
 #include <renderer/Renderer.h>
 #include <renderer/Buffer.h>
 #include <scene/Scene.h>
+#include <scene/systems/Systems.h>
 
 class VulkanRenderer : public Renderer{
 public:
@@ -34,6 +35,7 @@ private:
 	uint32_t findMemoryType(vk::MemoryRequirements&, vk::MemoryPropertyFlags);
 
 	std::unique_ptr<Scene> activeScene;
+	std::unique_ptr<Systems> systems;
 
 	struct {
 		glm::mat4x4 model = glm::mat4x4(1.0f);

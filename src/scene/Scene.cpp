@@ -78,8 +78,6 @@ void Scene::Start()
 
     Camera& comp = addComponent<Camera>(go);
 
-    comp.angle = 29;
-
     //activeScene->updateComponent<Camera>(go, comp);
 
     auto camera2 = getComponent<Camera>(go);
