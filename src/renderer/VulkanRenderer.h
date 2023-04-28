@@ -1,12 +1,10 @@
 #pragma once
 #include <glm/gtc/matrix_transform.hpp>
-
+#include <graphics/Vertex.h>
 #include <shader/Shader.h>
 #include <application/Time.h>
 #include <renderer/Renderer.h>
 #include <renderer/Buffer.h>
-#include <scene/Scene.h>
-#include <scene/systems/Systems.h>
 
 class VulkanRenderer : public Renderer{
 public:
@@ -14,6 +12,9 @@ public:
 	void Draw();
 	void DrawFrame();
 	void Start();
+
+	UniformBufferObject& getUBO();
+
 private:
 	void CreateVulkanInstance();
 	void CreateVulkanPhysicalDevice();
@@ -34,19 +35,7 @@ private:
 
 	uint32_t findMemoryType(vk::MemoryRequirements&, vk::MemoryPropertyFlags);
 
-	std::unique_ptr<Scene> activeScene;
-	std::unique_ptr<Systems> systems;
-
-	struct {
-		glm::mat4x4 model = glm::mat4x4(1.0f);
-		glm::mat4x4 view = glm::lookAt(glm::vec3(-3.0f, -3.0f, -15.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
-		glm::mat4x4 projection = glm::perspective(glm::radians(30.0f), 1.0f, 0.1f, 100.0f);
-		glm::mat4x4 clip = glm::mat4x4(1.0f, 0.0f, 0.0f, 0.0f,
-			0.0f, -1.0f, 0.0f, 0.0f,
-			0.0f, 0.0f, 0.5f, 0.0f,
-			0.0f, 0.0f, 0.5f, 1.0f);  // vulkan clip space has inverted y and half z !
-		// clang-format on
-	}ubo;
+	UniformBufferObject ubo;
 
 	glm::mat4x4 mvpc;
 	bool scalingUp;

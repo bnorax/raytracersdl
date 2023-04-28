@@ -3,10 +3,10 @@
 #include <scene/Scene.h>
 class Systems {
 public:
-	Systems(entt::registry&);
+	Systems(Scene& scene);
 	void Start();
 	void Update();
 private:
-	entt::registry& registry;
+	Scene& scene;
 	std::unique_ptr<CameraSystem> camera;
 };

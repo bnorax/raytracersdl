@@ -30,8 +30,6 @@ VulkanRenderer::VulkanRenderer(SDL_Window* _window) : Renderer(_window)
     CreateShaderModules();
     CreateVertexBuffer();
     CreateGraphicsPipeline();
-
-    Start();
 }
 
 void VulkanRenderer::Draw()
@@ -60,7 +58,7 @@ void VulkanRenderer::Draw()
         if (scale.y < 0.1) scalingUp = true;
         if (scalingUp) ubo.model = glm::scale(ubo.model, glm::vec3(1, 1+(time.deltaTime()), 1));
         else ubo.model = glm::scale(ubo.model, glm::vec3(1, 1 -(time.deltaTime()), 1));
-        ubo.view = glm::rotate(ubo.view, glm::radians(10.0f) * time.deltaTime(), glm::vec3(0, 1, 0));
+       // ubo.view = glm::rotate(ubo.view, glm::radians(10.0f) * time.deltaTime(), glm::vec3(0, 1, 0));
         mvpc = ubo.clip * ubo.projection * ubo.view * ubo.model;
         uniformBuffer->copyToBuffer(&mvpc, sizeof(glm::mat4x4));
     }
@@ -134,10 +132,12 @@ void VulkanRenderer::DrawFrame()
 
 void VulkanRenderer::Start()
 {
-    activeScene = std::make_unique<Scene>();
-    systems = std::make_unique<Systems>();
-    systems->Start();
-    activeScene->Start();
+    
+}
+
+UniformBufferObject& VulkanRenderer::getUBO()
+{
+    return ubo;
 }
 
 void VulkanRenderer::CreateVulkanInstance()

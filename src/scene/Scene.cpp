@@ -3,7 +3,7 @@
 
 using json = nlohmann::json;
 
-Scene::Scene()
+Scene::Scene(VulkanRenderer& _renderer): renderer{_renderer}
 {
     registry = std::make_unique<entt::registry>();
 }
@@ -71,6 +71,11 @@ void Scene::deleteGameObject(GameObject& object)
     objects.erase(objects.begin() + index);
 }
 
+VulkanRenderer& Scene::getRenderer()
+{
+    return renderer;
+}
+
 void Scene::Start()
 {
     using namespace Components;
@@ -82,7 +87,7 @@ void Scene::Start()
 
     auto camera2 = getComponent<Camera>(go);
 
-    deleteGameObject(go);
+    //deleteGameObject(go);
 }
 
 void Scene::Update()

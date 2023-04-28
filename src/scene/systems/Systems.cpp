@@ -1,8 +1,8 @@
 #include "Systems.h"
 
-Systems::Systems(entt::registry& _registry)  : registry{_registry}
+Systems::Systems(Scene& _scene)  : scene{_scene}
 {
-	camera = std::make_unique<CameraSystem>(registry);
+	camera = std::make_unique<CameraSystem>(scene);
 }
 
 void Systems::Start()

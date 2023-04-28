@@ -1,10 +1,11 @@
 #pragma once
 #include <scene/JsonSerialization.h>
 #include <scene/GameObject.h>
+#include <renderer/VulkanRenderer.h>
 
 class Scene {
 public:
-	Scene();
+	Scene(VulkanRenderer&);
 	entt::registry& getRegistry();
 	void saveToFile(std::string filaName);
 	void loadFromFile(std::string fileName);
@@ -20,6 +21,8 @@ public:
 		return registry->get<T>(object.GetEntityID());
 	}
 
+	VulkanRenderer& getRenderer();
+
 	void Start();
 	void Update();
 	/*template<typename T>
@@ -33,6 +36,9 @@ public:
 private:
 	std::string serialize();
 	std::unique_ptr<entt::registry> deserialize(std::string);
+
+	VulkanRenderer& renderer;
+
 	std::unique_ptr<entt::registry> registry;
 	std::vector<GameObject> objects;
     std::string sceneName = "Default Scene.json";

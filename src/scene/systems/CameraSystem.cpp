@@ -3,36 +3,43 @@
 #include <glm/gtc/constants.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-CameraSystem::CameraSystem(entt::registry& _registry) : registry{ _registry }
+CameraSystem::CameraSystem(Scene& _scene) : scene{ _scene },
+											registry {_scene.getRegistry()}
 {
+	SDL_SetRelativeMouseMode(SDL_TRUE);
 }
 
 void CameraSystem::Update()
 {
 	using namespace Components;
 	int x, y;
-	SDL_GetMouseState(&x, &y);
-	
+	SDL_GetRelativeMouseState(&x, &y);
+
 	auto regView = registry.view<Camera>();
 	for (auto entity : regView) {
-		//Components::Transforms& transform = registry.get<Components::Transforms>(entity);
 		Camera& camera = registry.get<Components::Camera>(entity);
 
-		//float screenWidth = renderer.windowRef.width, screenHeight = renderer.windowRef.height;
-		float screenWidth = 1280, screenHeight = 720;
-		float distX = x - screenWidth / 2;
-		float distY = y - screenHeight / 2;
-		float anglePerPixelX = (camera.maximumY - camera.minimumY) / screenWidth, anglePerPixelY = (camera.maximumX - camera.minimumX) / screenHeight;
-		float yaw = anglePerPixelX * distX;
-		float yawRadian = yaw * glm::pi<float>()/180.0f;
-		float pitch = anglePerPixelY * distY;
-		float pitchRadian = pitch * glm::pi<float>() / 180.0f;
+		float xoffset = x;
+		float yoffset = y;
+		xoffset *= camera.sensitivityX;
+		yoffset *= camera.sensitivityY;
 
-		glm::quat qPitch = glm::angleAxis(pitchRadian, glm::vec3(1, 0, 0));
-		glm::quat qYaw = glm::angleAxis(yawRadian, glm::vec3(0, 1, 0));
-		glm::quat orientation = qPitch * qYaw;
-		orientation = glm::normalize(orientation);
+		yaw = std::fmod((yaw - xoffset), 360.0f);
+		//yaw -=  xoffset;
+		pitch += yoffset;
+
+		if (pitch > camera.maximumY) pitch = camera.maximumY;
+		if (pitch < camera.minimumY) pitch = camera.minimumY;
+		//std::cout << "Pitch: " << pitch << std::endl;
+		//std::cout << "yaw: " << yaw << std::endl;
+
+		UniformBufferObject& ubo = scene.getRenderer().getUBO();
+		pos = glm::vec3(-3.0f, 0.0f, -15.0f);
+		dir = glm::vec3(
+			cos(glm::radians(yaw)) * cos(glm::radians(pitch)),
+			sin(glm::radians(pitch)),
+			sin(glm::radians(yaw)) * cos(glm::radians(pitch)));
+		up = glm::vec3(0.0f, -1.0f, 0.0f);
+		ubo.view = glm::lookAtRH(pos, pos+glm::normalize(dir), up);
 	}
-
-
 }

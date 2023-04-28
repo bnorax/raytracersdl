@@ -9,7 +9,14 @@ Application::Application()
     if (sdlWindow == NULL) throw std::runtime_error(std::string("Error during SDL window creation\n").append(SDL_GetError()));
     sdlRenderer = SDL_CreateRenderer(sdlWindow, -1, 0);
     if(sdlRenderer == NULL) throw std::runtime_error(std::string("Error during SDL renderer creation\n").append(SDL_GetError()));
+
     renderer = std::make_unique<VulkanRenderer>(sdlWindow);
+    activeScene = std::make_unique<Scene>(*renderer);
+    systems = std::make_unique<Systems>(*activeScene);
+
+    systems->Start();
+    activeScene->Start();
+    renderer->Start();
 }
 
 int Application::OnExecute()
@@ -37,6 +44,8 @@ void Application::OnEvent(SDL_Event* event)
 
 void Application::OnLoop()
 {
+    activeScene->Update();
+    systems->Update();
 }
 
 void Application::OnRender()
@@ -53,4 +62,14 @@ Application::~Application()
     SDL_DestroyRenderer(sdlRenderer);
     SDL_DestroyWindow(sdlWindow);
     SDL_Quit();
+}
+
+SDL_Window* Application::getWindow()
+{
+    return sdlWindow;
+}
+
+std::tuple<int, int> Application::getWindowDimensions()
+{
+    return std::tuple<int, int>(windowWidth, windowHeight);
 }

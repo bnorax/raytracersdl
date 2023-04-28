@@ -8,16 +8,7 @@ namespace Components {
     void from_json(const nlohmann::json& nlohmann_json_j, Transform& nlohmann_json_t) {
         nlohmann_json_j.at("position").get_to(nlohmann_json_t.position); nlohmann_json_j.at("rotation").get_to(nlohmann_json_t.rotation); nlohmann_json_j.at("scale").get_to(nlohmann_json_t.scale);
     }
-    void to_json(nlohmann::json& nlohmann_json_j, const Camera& nlohmann_json_t) {
-        to_json(nlohmann_json_j["transform"], nlohmann_json_t.transform);
-        // nlohmann_json_j["transform"] = nlohmann_json_t.transform;
-        nlohmann_json_j["angle"] = nlohmann_json_t.angle;
-    }
-    void from_json(const nlohmann::json& nlohmann_json_j, Camera& nlohmann_json_t) {
-        from_json(nlohmann_json_j.at("transform"), nlohmann_json_t.transform);
-        // nlohmann_json_j.at("transform").get_to(nlohmann_json_t.transform); 
-        nlohmann_json_j.at("angle").get_to(nlohmann_json_t.angle);
-    }
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Camera, sensitivityX, sensitivityY, minimumY, maximumY, minimumX, maximumX)
 }
 
 SceneInput::SceneInput(const std::string& json_string)

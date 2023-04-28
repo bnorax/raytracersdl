@@ -6,11 +6,11 @@ namespace Components {
         std::array<float, 3> scale { 0, 0, 0 };
     };
     struct Camera {
-        float sensitivityX = 2.0f;
-        float sensitivityY = .005f;
+        float sensitivityX = 0.1f;
+        float sensitivityY = 0.1f;
 
-        float minimumY = 0.0f;
-        float maximumY = 360.0f;
+        float minimumY = -19;
+        float maximumY = 19;
 
         float minimumX = -20.0f;
         float maximumX = 60.0f;
